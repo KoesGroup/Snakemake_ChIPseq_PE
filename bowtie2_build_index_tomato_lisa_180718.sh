@@ -5,6 +5,7 @@
 	# (up to 120:00:00 for 5 days)
 
 #bowtie2 version 2.2.4
+Jihed is dumb
 
 module load bowtie/2.2.4
 
