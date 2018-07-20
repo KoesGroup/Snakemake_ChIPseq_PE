@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+#Author :  Tijs Bliek
+#20/07/18
+
 import os
 import glob
 
