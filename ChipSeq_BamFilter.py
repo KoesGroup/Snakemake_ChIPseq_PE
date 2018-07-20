@@ -56,17 +56,17 @@ for f in lijst:
     # index the bam
     command23 = "samtools index " + f + "_mapped_lowmiss_unique_both_sort.bam"
 
-commands = [command1, command2, command3, command4, command5, command6, command7, command8, command9, command10,\
-            command11, command12, command13, command14, command15, command16, command17, command18, command19, command20,\
-            command21, command22, command23]
-name = f + ".sh"
+    commands = [command1, command2, command3, command4, command5, command6, command7, command8, command9, command10,\
+                command11, command12, command13, command14, command15, command16, command17, command18, command19, command20,\
+                command21, command22, command23]
+    name = f + ".sh"
 
-outFile = open(name, "w")
+    outFile = open(name, "w")
 
-outFile.write("#!/bin/bash\n\n")
-outFile.write("\n".join(commands))
+    outFile.write("#!/bin/bash\n\n")
+    outFile.write("\n".join(commands))
 
-outFile.close()
+    outFile.close()
 
-#os.system("chmod +x " + name)
-#os.system("./" + name)
+    #os.system("chmod +x " + name)
+    #os.system("./" + name)
