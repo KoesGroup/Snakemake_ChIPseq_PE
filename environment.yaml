@@ -10,4 +10,5 @@ dependencies:
   - fastqc=0.11.5
   - trimmomatic=0.38
   - parallel-fastq-dump=0.6.3
+  - macs2=2.1.1
 
