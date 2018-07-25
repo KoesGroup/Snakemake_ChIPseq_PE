@@ -1,0 +1,45 @@
+---
+# files and directories
+fastq_dir: "fastq/"
+working_dir: "scratch/"
+result_dir: "results/"
+
+# samples
+samples:
+  forward: "reads_1.fastq.gz"
+  reverse: "reads_2.fastq.gz"
+
+# adapters for trimmomatic        
+adapters: "adapters.fasta"
+
+# trimmomatic parameters
+trimmomatic:
+  adapters: "adapters.fasta"
+  seedMisMatches: '2'
+  palindromeClipTreshold: '30'
+  simpleClipThreshold: '10'
+  LeadMinTrimQual: '3'
+  TrailMinTrimQual: '3'
+  windowSize: '4'
+  avgMinQual: '15'
+  minReadLength: '40'
+  phred: "-phred33" # phred: for illumina >1.8 the quality score are encoded by phred33
+ 
+## Genomic references, annotations and aligner indexes
+refs:
+  genome_url:  "ftp://ftp.solgenomics.net/tomato_genome/assembly/build_3.00/S_lycopersicum_chromosomes.3.00.fa"
+  gff_url:     "ftp://ftp.solgenomics.net/tomato_genome/annotation/ITAG3.2_release/ITAG3.2_gene_models.gff"
+
+
+# Bowtie2 commands
+#bowtie2 --end-to-end --very-sensitive -p 16 -q --mm -x ../../bowtie/hg19 -1 02_trimmed/filename_forward_trimmed.fastq -2 02_trimmed/filename_reverse_trimmed.fastq -U 02_trimmed/filename__forward_Unpaired_trimmed.fastq,02_trimmed/Hfilename_reverse_Unpaired_trimmed.fastq -S 03_bowtie/filename.sam
+
+# Parameters for Bowtie2
+bowtie2:
+  params:
+    mode: "--local"
+    sensitivity: "--very-sensitive-local"
+    max_fragment_len: "500"                # maximum fragment length for valid paired-end alignments
+    min_fragment_len: "80"                 # minimum fragment length for valid paired-end alignments
+    verbose: "-q"
+
