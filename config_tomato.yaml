@@ -6,9 +6,24 @@ result_dir: "results/"
 
 # samples
 samples:
-  SRR5748728:
-    forward: "SRR5748728_1.fastq.gz"
-    reverse: "SRR5748728_2.fastq.gz"
+    ChIP1:
+        forward: Chip1_S_DA10_1.fq.gz
+        reverse: Chip1_S_DA10_2.fq.gz
+    ChIP2:
+        forward: Chip2_S_DA11_1.fq.gz
+        reverse: Chip2_S_DA11_2.fq.gz
+    ChIP3:
+        forward: Chip3_S_DA12_1.fq.gz
+        reverse: Chip3_S_DA12_2.fq.gz
+    ChIP4:
+        forward: Chip4_S_DA19_1.fq.gz
+        reverse: Chip4_S_DA19_2.fq.gz
+    ChIP5:
+        forward: Chip5_S_DA20_1.fq.gz
+        reverse: Chip5_S_DA20_2.fq.gz
+    ChIP6:
+        forward: Chip6_S_DA21_1.fq.gz
+        reverse: Chip6_S_DA21_2.fq.gz
 
 # adapters for trimmomatic        
 adapters: "adapters.fasta"
