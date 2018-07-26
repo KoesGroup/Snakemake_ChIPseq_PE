@@ -18,7 +18,7 @@ First, you need to install all softwares and packages needed with the [Conda pac
 Now, all softwares and packages versions in use are the one listed in the `environment.yaml` file.
 
 ## Configuration file
-You will need to provide 
+The `config_tomato.yaml` file specifies the sample list, the genomic reference fasta file to use, the directories to use, etc. This file is then used to build parameters in the main `Snakefile`. 
 
 ## Snakemake execution
 The Snakemake pipeline/workflow management system reads a master file (often called `Snakefile`) to list the steps to be executed and defining their order. 
