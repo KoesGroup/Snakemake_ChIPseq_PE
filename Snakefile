@@ -10,26 +10,27 @@ import os
 ###############
 configfile: "config_tomato.yaml"
 
-WORKING_DIR = config["working_dir"]
-RESULT_DIR = config["result_dir"]
+FASTQ_DIR = config["fastq_dir"]        # where to find the fastq files
+WORKING_DIR = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
+RESULT_DIR = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL = config["refs"]["genome_url"]
 GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
 
+##############
+# Wildcards
+##############
+wildcard_constraints:
+    sample="[A-Za-z0-9]+"
 
 ################
-# Desired output
+# Final output
 ################
 rule all:
-	input:
-		  expand("mapped/{sample}.bam", sample=config["samples"])
-	message: "ChIP-seq pipeline succesfully run. The {WORKING_DIR} working directory was removed"
-	shell:"rm -rf {WORKING_DIR}"
-
-
-#############
-# Functions #
-#############
+    input:
+        expand(WORKING_DIR + "mapped/{sample}.sorted.bam", sample=config["samples"])
+    message: "ChIP-seq pipeline succesfully run. The {WORKING_DIR} working directory was removed"
+    shell:"rm -rf {WORKING_DIR}"
 
 
 ###############
@@ -43,8 +44,10 @@ rule get_genome_fasta:
 
 rule trimmomatic:
     input:
-        forward_reads = lambda wildcards: config["samples"][wildcards.sample]["forward"],
-        reverse_reads = lambda wildcards: config["samples"][wildcards.sample]["reverse"],
+        forward = FASTQ_DIR + "{sample}_1.fastq.gz",
+        reverse = FASTQ_DIR + "{sample}_2.fastq.gz", 
+        #forward_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["forward"],
+        #reverse_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["reverse"],
         adapters = config["adapters"]
     output:
         forward = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
@@ -67,36 +70,64 @@ rule trimmomatic:
     threads: 10
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
-        "{input.reads} "
-        "{output.forward} {output.forwardUnpaired} "
-        "{output.reverse} {output.reverseUnpaired} "
+        "{input.forward} "
+        "{input.reverse} "
+        "{output.forward} "
+        "{output.forwardUnpaired} "
+        "{output.reverse} "
+        "{output.reverseUnpaired} "
         "ILLUMINACLIP:{input.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
         "LEADING:{params.LeadMinTrimQual} "
         "TRAILING:{params.TrailMinTrimQual} "
         "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
         "MINLEN:{params.minReadLen} 2>{log}"
 
-rule bowtie2:
+rule index:
     input:
-	    forward = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
-		forwardUnpaired = WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz",
-        reverseUnpaired = WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz"
+        WORKING_DIR + "genome.fasta"
     output:
-	    "mapped/{sample}.bam"
-	message: "Mapping files"
-	params:
-	    bowtie = " ".join(config["bowtie2"]["params"].values())
+        [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)],
+        WORKING_DIR + "genome.rev.1.bt2",
+        WORKING_DIR + "genome.rev.2.bt2"
+    message:"indexing genome"
+    params:
+        WORKING_DIR + "genome"
+    threads: 10
+    shell:"bowtie2-build --threads {threads} {input} {params}"
 
+rule align:
+    input:
+        forward = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
+        reverse = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
+        forwardUnpaired = WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz",
+        reverseUnpaired = WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz",
+        index = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
+    output:
+        temp(WORKING_DIR + "mapped/{sample}.bam")
+    message: "Mapping files"
+    params:
+        bowtie = " ".join(config["bowtie2"]["params"].values()),
+        index = WORKING_DIR + "genome"
     threads: 10
     shell:
-        "bowtie2 --end-to-end --very-sensitive -X 600 -I 50 "
-        "-p {threads} -q --mm -x ../../bowtie/hg19 "
+        "bowtie2 {params.bowtie} "
+        "--threads {threads} "
+        "-x {params.index} "
         "-1 {input.forward} -2 {input.reverse} "
-        "-U {input.forwardUnpaired},{input.reverseUnpaired} |"
-        "samtools view -Sb {output}"
-	# 	check the use of -X and -I for munimum and maximum fragment length for valid paired-end alignments.
-	#	-X 500 maximum fragment length for valid paired-end alignments
-	#	-I 80 The minimum fragment length for valid paired-end alignments
+        "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming 
+        "|samtools view -Sb - > {output}"                       # to get the output as a BAM file directly 
+
+rule sort:
+    input:
+        WORKING_DIR + "mapped/{sample}.bam"
+    output:
+        WORKING_DIR + "mapped/{sample}.sorted.bam"
+    message:"sorting {wildcards.sample} bam file"
+    threads: 10
+    shell:"samtools sort -@ {threads} -o {output} {input}"
+ 
+
+
+
 
 
