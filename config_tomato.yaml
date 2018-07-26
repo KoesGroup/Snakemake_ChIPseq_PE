@@ -6,8 +6,9 @@ result_dir: "results/"
 
 # samples
 samples:
-  forward: "reads_1.fastq.gz"
-  reverse: "reads_2.fastq.gz"
+  SRR5748728:
+    forward: "SRR5748728_1.fastq.gz"
+    reverse: "SRR5748728_2.fastq.gz"
 
 # adapters for trimmomatic        
 adapters: "adapters.fasta"
@@ -37,7 +38,7 @@ refs:
 # Parameters for Bowtie2
 bowtie2:
   params:
-    mode: "--local"
+    mode: "--end-to-end"
     sensitivity: "--very-sensitive-local"
     max_fragment_len: "500"                # maximum fragment length for valid paired-end alignments
     min_fragment_len: "80"                 # minimum fragment length for valid paired-end alignments
