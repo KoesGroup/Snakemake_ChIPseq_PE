@@ -30,6 +30,7 @@ rule all:
     input:
         expand(WORKING_DIR + "mapped/{sample}.sorted.bam", sample=config["samples"])
     message: "ChIP-seq pipeline succesfully run. The {WORKING_DIR} working directory was removed"
+	#finger crossed to see this message!
     shell:"rm -rf {WORKING_DIR}"
 
 
@@ -44,14 +45,15 @@ rule get_genome_fasta:
 
 rule trimmomatic:
     input:
-        forward = FASTQ_DIR + "{sample}_1.fastq.gz",
-        reverse = FASTQ_DIR + "{sample}_2.fastq.gz", 
-        #forward_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["forward"],
-        #reverse_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["reverse"],
+        #forward = FASTQ_DIR + "{sample}_1.fastq.gz",
+		#reverse = FASTQ_DIR + "{sample}_2.fastq.gz",
+		#12/08/18 JC : commented out lines 48,49, it makes more sense for me to call sample with the wildcards
+        forward_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["forward"],
+        reverse_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["reverse"],
         adapters = config["adapters"]
     output:
-        forward = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
+        forward_reads = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
+        reverse_reads = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
         forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz"),
         reverseUnpaired = temp(WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz")
     message: "trimming {wildcards.sample} reads"
@@ -70,11 +72,11 @@ rule trimmomatic:
     threads: 10
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
-        "{input.forward} "
-        "{input.reverse} "
-        "{output.forward} "
+        "{input.forward_reads} "
+        "{input.reverse_reads} "
+        "{output.forward_reads} "
         "{output.forwardUnpaired} "
-        "{output.reverse} "
+        "{output.reverse_reads} "
         "{output.reverseUnpaired} "
         "ILLUMINACLIP:{input.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
         "LEADING:{params.LeadMinTrimQual} "
@@ -114,8 +116,8 @@ rule align:
         "--threads {threads} "
         "-x {params.index} "
         "-1 {input.forward} -2 {input.reverse} "
-        "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming 
-        "|samtools view -Sb - > {output}"                       # to get the output as a BAM file directly 
+        "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming
+        "|samtools view -Sb - > {output}"                       # to get the output as a BAM file directly
 
 rule sort:
     input:
@@ -125,9 +127,3 @@ rule sort:
     message:"sorting {wildcards.sample} bam file"
     threads: 10
     shell:"samtools sort -@ {threads} -o {output} {input}"
- 
-
-
-
-
-
