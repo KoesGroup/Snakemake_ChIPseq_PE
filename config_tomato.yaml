@@ -25,7 +25,7 @@ samples:
         forward: Chip6_S_DA21_1.fq.gz
         reverse: Chip6_S_DA21_2.fq.gz
 
-# adapters for trimmomatic        
+# adapters for trimmomatic
 adapters: "adapters.fasta"
 
 # trimmomatic parameters
@@ -40,7 +40,7 @@ trimmomatic:
   avgMinQual: '15'
   minReadLength: '40'
   phred: "-phred33" # phred: for illumina >1.8 the quality score are encoded by phred33
- 
+
 ## Genomic references, annotations and aligner indexes
 refs:
   genome_url:  "ftp://ftp.solgenomics.net/tomato_genome/assembly/build_3.00/S_lycopersicum_chromosomes.3.00.fa"
@@ -55,7 +55,6 @@ bowtie2:
   params:
     mode: "--end-to-end"
     sensitivity: "--very-sensitive-local"
-    max_fragment_len: "500"                # maximum fragment length for valid paired-end alignments
-    min_fragment_len: "80"                 # minimum fragment length for valid paired-end alignments
+    #max_fragment_len: "500"                # maximum fragment length for valid paired-end alignments
+    #min_fragment_len: "80"                 # minimum fragment length for valid paired-end alignments
     verbose: "-q"
-
