@@ -117,7 +117,7 @@ rule align:
         "-x {params.index} "
         "-1 {input.forward} -2 {input.reverse} "
         "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming
-        "|samtools view -Sb - > {output}"                       # to get the output as a BAM file directly
+        "| samtools view -Sb - > {output}"                       # to get the output as a BAM file directly
 
 rule sort:
     input:
