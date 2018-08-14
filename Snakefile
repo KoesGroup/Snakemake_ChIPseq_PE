@@ -108,7 +108,7 @@ rule align:
         temp(WORKING_DIR + "mapped/{sample}.bam")
     message: "Mapping files"
     params:
-        bowtie = " ".join(config["bowtie2"]["params"].values()),
+        bowtie = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
         index = WORKING_DIR + "genome"
     threads: 10
     shell:

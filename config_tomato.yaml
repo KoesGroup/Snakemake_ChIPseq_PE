@@ -1,8 +1,8 @@
 ---
 # files and directories
-fastq_dir: "fastq/"
-working_dir: "scratch/"
-result_dir: "results/"
+fastq_dir: "/home/jchouaref/DMC1/analysis/raw_data/"
+working_dir: "/home/jchouaref/snake/"
+result_dir: "/home/jchouaref/DMC1/analysis/results/"
 
 # samples
 samples:
@@ -53,8 +53,8 @@ refs:
 # Parameters for Bowtie2
 bowtie2:
   params:
-    mode: "--end-to-end"
+    mode: "--local"
     sensitivity: "--very-sensitive-local"
-    #max_fragment_len: "500"                # maximum fragment length for valid paired-end alignments
-    #min_fragment_len: "80"                 # minimum fragment length for valid paired-end alignments
+    max_fragment_len: "--maxins 500"                # maximum fragment length for valid paired-end alignments
+    min_fragment_len: "--minins 80"                 # minimum fragment length for valid paired-end alignments
     verbose: "-q"
