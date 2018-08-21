@@ -8,7 +8,7 @@ import os
 ###############
 # Configuration
 ###############
-configfile: "config_tomato.yaml"
+configfile: "config/config_tomato_sub.yaml"
 
 FASTQ_DIR = config["fastq_dir"]        # where to find the fastq files
 WORKING_DIR = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
@@ -28,9 +28,8 @@ wildcard_constraints:
 ################
 rule all:
     input:
-        expand(WORKING_DIR + "mapped/{sample}.sorted.bam", sample=config["samples"])
-    message: "ChIP-seq pipeline succesfully run. The {WORKING_DIR} working directory was removed"
-	#finger crossed to see this message!
+        expand(RESULT_DIR + "mapped/{sample}.sorted.bam", sample=config["samples"])
+    message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
     shell:"rm -rf {WORKING_DIR}"
 
 
@@ -46,8 +45,7 @@ rule get_genome_fasta:
 rule trimmomatic:
     input:
         #forward = FASTQ_DIR + "{sample}_1.fastq.gz",
-		#reverse = FASTQ_DIR + "{sample}_2.fastq.gz",
-		#12/08/18 JC : commented out lines 48,49, it makes more sense for me to call sample with the wildcards
+	#reverse = FASTQ_DIR + "{sample}_2.fastq.gz",		#12/08/18 JC : commented out lines 48,49, it makes more sense for me to call sample with the wildcards
         forward_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["forward"],
         reverse_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["reverse"],
         adapters = config["adapters"]
@@ -123,7 +121,7 @@ rule sort:
     input:
         WORKING_DIR + "mapped/{sample}.bam"
     output:
-        WORKING_DIR + "mapped/{sample}.sorted.bam"
+        RESULT_DIR + "mapped/{sample}.sorted.bam"
     message:"sorting {wildcards.sample} bam file"
     threads: 10
     shell:"samtools sort -@ {threads} -o {output} {input}"
