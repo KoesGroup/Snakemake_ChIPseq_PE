@@ -8,7 +8,7 @@ import os
 ###############
 # Configuration
 ###############
-configfile: "config/config_tomato_sub.yaml"
+configfile: "configs/config_tomato_sub.yaml"
 
 FASTQ_DIR = config["fastq_dir"]        # where to find the fastq files
 WORKING_DIR = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
