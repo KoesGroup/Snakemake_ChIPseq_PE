@@ -38,7 +38,7 @@ rule all:
 
     message: "ChIP-seq pipeline succesfully run."
 	#finger crossed to see this message!
-    shell:"#rm -rf {WORKING_DIR}"
+    shell:"rm -rf {WORKING_DIR}"
 
 
 ###############
