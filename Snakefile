@@ -26,7 +26,7 @@ wildcard_constraints:
 # Desired output
 ################
 #test 20/08, is it more clear when I define the desired output out of the rule all ?
-FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}.fastq_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
+FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
 SORTED_BAM     = expand(RESULT_DIR + "mapped/{sample}.sorted.bam", sample=config["samples"])
 ################
 # Final output
@@ -96,16 +96,16 @@ rule fastqc:
         fwd=WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
         rev=WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
     output:
-        fwd=RESULT_DIR + "fastqc/{sample}_forward.fastq_fastqc.zip",
-        rev=RESULT_DIR + "fastqc/{sample}_reverse.fastq_fastqc.zip"
+        fwd=RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
+        rev=RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
     log:
         RESULT_DIR + "logs/fastqc/{sample}.fastqc.log"
     params:
         RESULT_DIR + "fastqc/"
-    #message:
-        #"---Quality check of trimmed {sample} sample with FASTQC" 		#removed, it was not working
+    message:
+        "---Quality check of trimmed {wildcards.sample} sample with FASTQC" 		#removed, it was not working
     shell:
-        "fastqc --outdir={params} --extract -f fastq {input.fwd} {input.rev} 2 > {log}"
+        "fastqc --outdir={params} {input.fwd} {input.rev}"
 
 
 rule index:
