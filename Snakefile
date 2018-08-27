@@ -30,7 +30,7 @@ sample="[A-Za-z0-9]+"
 BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=config["samples"])
 BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=config["samples"])
 FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
-
+BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=config["samples"])
 ################
 # Final output
 ################
@@ -38,10 +38,11 @@ rule all:
     input:
         BAM_INDEX,
         BAM_RMDUP,
-        FASTQC_REPORTS
+        FASTQC_REPORTS,
+        BEDGRAPH
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
-    shell:"rm -rf {WORKING_DIR}"
+    shell:"#rm -rf {WORKING_DIR}"
 
 
 ###############
@@ -172,3 +173,18 @@ rule bam_index:
     message: "Indexing {wildcards.sample} for rapid access"
     shell:
         "samtools index {input}"
+
+rule bedgraph:
+    input:
+        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+    output:
+        RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph"
+    params:
+        genome = WORKING_DIR + "genome"
+    message:
+        "Creation of {input} bedgraph file"
+    shell:
+        "bedtools genomecov -bga -ibam {input} -g {params.genome} > {output}"
+        # -ibam the input file is in BAM format
+        # -bga  Report Depth in BedGraph format, regions with zero coverage are also reported. Extract those regions with "grep -w 0$"
+        # -pc Calculate coverage of pair-end fragments. Works for BAM files only.
