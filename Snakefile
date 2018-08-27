@@ -138,7 +138,7 @@ rule rmdup:
         RESULT_DIR + "mapped/{sample}.sorted.bam"
     output:
         RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
-    message: "Removing duplicate from file {wilcards.sample}"    
+    message: "Removing duplicate from file {input}"
     shell:
         "samtools rmdup {input} {output}"                       #samtools manual says "This command is obsolete. Use markdup instead."
 
