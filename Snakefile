@@ -22,7 +22,7 @@ GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
 ##############
 wildcard_constraints:
 
-    sample="[A-Za-z0-9]+"
+sample="[A-Za-z0-9]+"
 
 ##############
 # Desired output
@@ -36,8 +36,6 @@ FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample
 ################
 rule all:
     input:
-
-        expand(RESULT_DIR + "mapped/{sample}.sorted.bam", sample=config["samples"]),
         BAM_INDEX,
         BAM_RMDUP,
         FASTQC_REPORTS
