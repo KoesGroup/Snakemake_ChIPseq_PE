@@ -21,6 +21,7 @@ GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
 # Wildcards
 ##############
 wildcard_constraints:
+
     sample="[A-Za-z0-9]+"
 
 ##############
@@ -28,15 +29,20 @@ wildcard_constraints:
 ##############
 BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=config["samples"])
 BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=config["samples"])
+FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
+
 ################
 # Final output
 ################
 rule all:
     input:
+
         expand(RESULT_DIR + "mapped/{sample}.sorted.bam", sample=config["samples"]),
         BAM_INDEX,
-        BAM_RMDUP
+        BAM_RMDUP,
+        FASTQC_REPORTS
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
+
     shell:"rm -rf {WORKING_DIR}"
 
 
@@ -52,7 +58,8 @@ rule get_genome_fasta:
 rule trimmomatic:
     input:
         #forward = FASTQ_DIR + "{sample}_1.fastq.gz",
-	#reverse = FASTQ_DIR + "{sample}_2.fastq.gz",		#12/08/18 JC : commented out lines 48,49, it makes more sense for me to call sample with the wildcards
+	#reverse = FASTQ_DIR + "{sample}_2.fastq.gz",
+	#12/08/18 JC : commented out lines 48,49, it makes more sense for me to call sample with the wildcards
         forward_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["forward"],
         reverse_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["reverse"],
         adapters = config["adapters"]
@@ -88,6 +95,23 @@ rule trimmomatic:
         "TRAILING:{params.TrailMinTrimQual} "
         "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
         "MINLEN:{params.minReadLen} 2>{log}"
+
+rule fastqc:
+    input:
+        fwd=WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
+        rev=WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
+    output:
+        fwd=RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
+        rev=RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
+    log:
+        RESULT_DIR + "logs/fastqc/{sample}.fastqc.log"
+    params:
+        RESULT_DIR + "fastqc/"
+    message:
+        "---Quality check of trimmed {wildcards.sample} sample with FASTQC" 		#removed, it was not working
+    shell:
+        "fastqc --outdir={params} {input.fwd} {input.rev}"
+
 
 rule index:
     input:
