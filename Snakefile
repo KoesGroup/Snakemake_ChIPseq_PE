@@ -21,23 +21,26 @@ GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
 # Wildcards
 ##############
 wildcard_constraints:
-    #sample="[A-Za-z0-9]+"
-################
+
+sample="[A-Za-z0-9]+"
+
+##############
 # Desired output
-################
-#test 20/08, is it more clear when I define the desired output out of the rule all ?
+##############
+BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=config["samples"])
+BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=config["samples"])
 FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
-SORTED_BAM     = expand(RESULT_DIR + "mapped/{sample}.sorted.bam", sample=config["samples"])
+
 ################
 # Final output
 ################
 rule all:
     input:
-        SORTED_BAM ,
+        BAM_INDEX,
+        BAM_RMDUP,
         FASTQC_REPORTS
+    message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
-    message: "ChIP-seq pipeline succesfully run."
-	#finger crossed to see this message!
     shell:"rm -rf {WORKING_DIR}"
 
 
@@ -151,3 +154,21 @@ rule sort:
     message:"sorting {wildcards.sample} bam file"
     threads: 10
     shell:"samtools sort -@ {threads} -o {output} {input}"
+
+rule rmdup:
+    input:
+        RESULT_DIR + "mapped/{sample}.sorted.bam"
+    output:
+        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+    message: "Removing duplicate from file {input}"
+    shell:
+        "samtools rmdup {input} {output}"                       #samtools manual says "This command is obsolete. Use markdup instead."
+
+rule bam_index:
+    input:
+        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+    output:
+        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai"
+    message: "Indexing {wildcards.sample} for rapid access"
+    shell:
+        "samtools index {input}"

@@ -1,1 +1,3 @@
 fastq/
+.snakemake/
+result/
