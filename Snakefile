@@ -31,6 +31,7 @@ BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=c
 BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=config["samples"])
 FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
 BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=config["samples"])
+BIGWIG = expand(RESULT_DIR + "bigwig/{sample}.bw", sample=config["samples"])
 ################
 # Final output
 ################
@@ -39,7 +40,8 @@ rule all:
         BAM_INDEX,
         BAM_RMDUP,
         FASTQC_REPORTS,
-        BEDGRAPH
+        BEDGRAPH,
+        BIGWIG
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -185,6 +187,21 @@ rule bedgraph:
         "Creation of {input} bedgraph file"
     shell:
         "bedtools genomecov -bga -ibam {input} -g {params.genome} > {output}"
+        # require a sorted bam file as input
         # -ibam the input file is in BAM format
         # -bga  Report Depth in BedGraph format, regions with zero coverage are also reported. Extract those regions with "grep -w 0$"
         # -pc Calculate coverage of pair-end fragments. Works for BAM files only.
+
+rule bigwig:
+    input:
+        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+    output:
+        RESULT_DIR + "bigwig/{sample}.bw"
+    message:
+        "Converting {input} bam into bigwig file"
+    log:
+        RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
+    params :
+        bamCoverage = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
+    shell:
+        "bamCoverage --bam {input} -o {output} {params.bamCoverage}"

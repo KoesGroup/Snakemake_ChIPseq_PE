@@ -47,3 +47,13 @@ bowtie2:
     max_fragment_len: "--maxins 500"                # maximum fragment length for valid paired-end alignments
     min_fragment_len: "--minins 80"                 # minimum fragment length for valid paired-end alignments
     verbose: "-q"
+
+#Parameters for bamCoverage:
+
+# bamCoverage --bam {input} -o {output} --effectiveGenomeSize
+# --effectiveGenomeSize    The effective genome size is the portion of the genome that is mappable. Large fractions of the genome are stretches of NNNN that should be discarded. Also, if repetitive regions were not included in the mapping of
+#                          reads, the effective genome size needs to be adjusted accordingly.
+
+bamCoverage:
+  params:
+    EFFECTIVEGENOMESIZE: "--effectiveGenomeSize 82000000" #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf

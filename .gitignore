@@ -1,3 +1,5 @@
 fastq/
 .snakemake/
 results/
+.DS_Store
+*.pdf
