@@ -16,7 +16,13 @@ RESULT_DIR = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL = config["refs"]["genome_url"]
 GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
+TOTALCORES = 16                         #check this via 'grep -c processor /proc/cpuinfo'
 
+##############
+# Samples
+##############
+CASES = []                              #list defining "treatment" ChIP samples
+CONTROLS =[]                            #list defining "control" ChIP samples
 ##############
 # Wildcards
 ##############
