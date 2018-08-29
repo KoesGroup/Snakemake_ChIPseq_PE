@@ -16,6 +16,8 @@ RESULT_DIR = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL = config["refs"]["genome_url"]
 GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
+TOTALCORES = 16                         #check this via 'grep -c processor /proc/cpuinfo'
+
 
 ##############
 # Wildcards
@@ -25,6 +27,12 @@ wildcard_constraints:
 sample="[A-Za-z0-9]+"
 
 ##############
+# Samples
+##############
+CASES = config["samples"]["ChIP1", "ChIP3", "ChIP5"]                              #list defining "treatment" ChIP samples, IP samples
+CONTROLS = config["samples"]["ChIP2", "ChIP4", "ChIP6"]                            #list defining "control" ChIP samples, input samples
+
+##############
 # Desired output
 ##############
 BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=config["samples"])
@@ -32,6 +40,7 @@ BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=confi
 FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
 BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=config["samples"])
 BIGWIG = expand(RESULT_DIR + "bigwig/{sample}.bw", sample=config["samples"])
+
 ################
 # Final output
 ################
