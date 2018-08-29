@@ -29,8 +29,8 @@ sample="[A-Za-z0-9]+"
 ##############
 # Samples
 ##############
-CASES = config["samples"]["ChIP1", "ChIP3", "ChIP5"]                              #list defining "treatment" ChIP samples, IP samples
-CONTROLS = config["samples"]["ChIP2", "ChIP4", "ChIP6"]                            #list defining "control" ChIP samples, input samples
+#CASES = config["samples"]["ChIP1", "ChIP3", "ChIP5"]                              #list defining "treatment" ChIP samples, IP samples
+#CONTROLS = config["samples"]["ChIP2", "ChIP4", "ChIP6"]                            #list defining "control" ChIP samples, input samples
 
 ##############
 # Desired output
