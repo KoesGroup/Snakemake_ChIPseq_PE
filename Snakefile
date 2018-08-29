@@ -200,8 +200,8 @@ rule bigwig:
     message:
         "Converting {input} bam into bigwig file"
     log:
-        RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
+        RESULT_DIR + "logs/deeptools/{wildcards.sample}_bamtobigwig.log"
     params :
-        bamCoverage = " ".join(config["bamCoverage"]["params"].values()), #take argument separated as a list separated with a space
+        bamCoverage = " ".join(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"].values()), #take argument separated as a list separated with a space
     shell:
-        "bamCoverage --bam {input} -o {output} {params.bamCoverage}"
+        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.bamCoverage}"
