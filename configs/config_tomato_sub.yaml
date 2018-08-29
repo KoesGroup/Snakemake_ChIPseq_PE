@@ -56,5 +56,5 @@ bowtie2:
 
 bamCoverage:
   params:
-    EFFECTIVEGENOMESIZE: "82000000" #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf
-                                    #option is --effectiveGenomeSize  
+    EFFECTIVEGENOMESIZE: '82000000' #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf
+                                    #option is --effectiveGenomeSize

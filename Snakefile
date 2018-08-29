@@ -195,7 +195,7 @@ rule bedgraph:
     message:
         "Creation of {input} bedgraph file"
     shell:
-        "bedtools genomecov -bga -ibam {input} -g {params.genome} > {output}"
+        "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
         # require a sorted bam file as input
         # -ibam the input file is in BAM format
         # -bga  Report Depth in BedGraph format, regions with zero coverage are also reported. Extract those regions with "grep -w 0$"
@@ -209,8 +209,9 @@ rule bigwig:
     message:
         "Converting {input} bam into bigwig file"
     log:
-        RESULT_DIR + "logs/deeptools/{wildcards.sample}_bamtobigwig.log"
-    params :
-        EFFECTIVEGENOMESIZE = " ".join(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"].values()), #take argument separated as a list separated with a space
+        RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
+    params:
+        EFFECTIVEGENOMESIZE = int(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]) #take argument separated as a list separated with a space
     shell:
         "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE}"
+ #
