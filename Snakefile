@@ -202,6 +202,6 @@ rule bigwig:
     log:
         RESULT_DIR + "logs/deeptools/{wildcards.sample}_bamtobigwig.log"
     params :
-        bamCoverage = " ".join(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"].values()), #take argument separated as a list separated with a space
+        EFFECTIVEGENOMESIZE = " ".join(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"].values()), #take argument separated as a list separated with a space
     shell:
-        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.bamCoverage}"
+        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE}"
