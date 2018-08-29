@@ -18,11 +18,7 @@ GENOME_FASTA_URL = config["refs"]["genome_url"]
 GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
 TOTALCORES = 16                         #check this via 'grep -c processor /proc/cpuinfo'
 
-##############
-# Samples
-##############
-CASES = []                              #list defining "treatment" ChIP samples
-CONTROLS =[]                            #list defining "control" ChIP samples
+
 ##############
 # Wildcards
 ##############
@@ -31,12 +27,19 @@ wildcard_constraints:
 sample="[A-Za-z0-9]+"
 
 ##############
+# Samples
+##############
+CASES = config["samples"]["ChIP1", "ChIP3", "ChIP5"]                              #list defining "treatment" ChIP samples, IP samples
+CONTROLS = config["samples"]["ChIP2", "ChIP4", "ChIP6"]                            #list defining "control" ChIP samples, input samples
+
+##############
 # Desired output
 ##############
 BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=config["samples"])
 BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=config["samples"])
 FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
 BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=config["samples"])
+BAMCOMPARE = expand(RESULT_DIR + "deeptools/{treament}_vs_{control}.bamcompare.bw", zip, treatment=CASES, control=CONTROLS)
 ################
 # Final output
 ################
@@ -45,7 +48,8 @@ rule all:
         BAM_INDEX,
         BAM_RMDUP,
         FASTQC_REPORTS,
-        BEDGRAPH
+        BEDGRAPH,
+        BAMCOMPARE
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -194,3 +198,12 @@ rule bedgraph:
         # -ibam the input file is in BAM format
         # -bga  Report Depth in BedGraph format, regions with zero coverage are also reported. Extract those regions with "grep -w 0$"
         # -pc Calculate coverage of pair-end fragments. Works for BAM files only.
+
+rule bamCompare:                                            #compare 2 BAM files based on the number of mapped reads.
+    input:
+        treatment=
+        control=
+    output:
+        RESULT_DIR + "deeptools/{treament}_vs_{control}.bamcompare.bw"
+    shell:
+        "bamCompare -b {input.treatment} -b2 {input.control} -p max -o {output}" #-p : number of processors to use.
