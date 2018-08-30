@@ -4,10 +4,11 @@
 # Libraries
 ###############
 import os
+import pandas as pd
 
-###############
-# Configuration
-###############
+#############################################
+# Configuration and sample sheets
+#############################################
 configfile: "configs/config_tomato_sub.yaml"
 
 FASTQ_DIR = config["fastq_dir"]        # where to find the fastq files
@@ -18,6 +19,16 @@ GENOME_FASTA_URL = config["refs"]["genome_url"]
 GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
 TOTALCORES = 16                         #check this via 'grep -c processor /proc/cpuinfo'
 
+samples = pd.read_table('samples.txt',dtype=str).set_index(['sample'], drop=False)
+#he reads the table 'samples.tsv', that he pre-defined as 'samples' with the
+#config.yaml file. The second part of the function uses the column 'sample' within
+#'samples.tsv' for indexing the dataframe
+validate(samples, schema="schemas/samples.schema.yaml")
+
+units = pd.read_table('units.txt',dtype=str).set_index(['sample', 'unit'], drop=False)
+#dataframe is indexed this time on 2 columns, important information for the definition of wildcards later
+units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])
+validate(units, schema="schemas/units.schema.yaml")
 
 ##############
 # Wildcards
@@ -211,7 +222,7 @@ rule bigwig:
     log:
         RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
     params:
-        EFFECTIVEGENOMESIZE = int(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]) #take argument separated as a list separated with a space
+        EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]) #take argument separated as a list separated with a space
     shell:
-        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE}"
+        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} 2>{log}"
  #

@@ -1,0 +1,7 @@
+sample	unit	fq1	fq2
+ChIP1	lane1	Chip1_S_DA10_1.fq.gz	Chip1_S_DA10_2.fq.gz
+ChIP2	lane1	Chip2_S_DA11_1.fq.gz	Chip2_S_DA11_2.fq.gz
+ChIP3	lane1	Chip3_S_DA12_1.fq.gz	Chip3_S_DA12_2.fq.gz
+ChIP4	lane1	Chip4_S_DA19_1.fq.gz	Chip4_S_DA19_2.fq.gz
+ChIP5	lane1	Chip5_S_DA20_1.fq.gz	Chip5_S_DA20_2.fq.gz
+ChIP6	lane1	Chip6_S_DA21_1.fq.gz	Chip6_S_DA21_2.fq.gz

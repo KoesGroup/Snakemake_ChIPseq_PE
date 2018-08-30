@@ -1,0 +1,7 @@
+sample	condition 
+ChIP1	treatment
+ChIP2	control
+ChIP3	treatment
+ChIP4	control
+ChIP5	treatment
+ChIP6	control

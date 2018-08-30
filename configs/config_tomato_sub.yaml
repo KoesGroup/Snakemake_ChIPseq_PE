@@ -1,4 +1,12 @@
 ---
+# path or URL to sample sheet (TSV format, columns: sample, condition, ...)
+samples: samples.txt
+# path or URL to sequencing unit sheet (TSV format, columns: sample, unit, fq1, fq2)
+# Units are technical replicates (e.g. lanes, or resequencing of the same biological
+# sample).
+units: units.txt
+
+
 # files and directories
 fastq_dir: "fastq/"
 working_dir: "temp/"
@@ -12,7 +20,6 @@ samples:
     ChIP2:
         forward: sub_ChIP2_1.fq
         reverse: sub_ChIP2_2.fq
-
 
 # adapters for trimmomatic
 adapters: "adapters.fasta"
