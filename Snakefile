@@ -25,9 +25,7 @@ samples = pd.read_table('samples.txt',dtype=str).set_index(['sample'], drop=Fals
 #'samples.tsv' for indexing the dataframe
 validate(samples, schema="schemas/samples.schema.yaml")
 
-units = pd.read_table('units.txt',dtype=str).set_index(['sample', 'unit'], drop=False)
-#dataframe is indexed this time on 2 columns, important information for the definition of wildcards later
-units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])
+units = pd.read_table('units.txt',dtype=str).set_index(['sample'], drop=False)
 validate(units, schema="schemas/units.schema.yaml")
 
 ##############
@@ -36,12 +34,6 @@ validate(units, schema="schemas/units.schema.yaml")
 wildcard_constraints:
 
 sample="[A-Za-z0-9]+"
-
-##############
-# Samples
-##############
-#CASES = config["samples"]["ChIP1", "ChIP3", "ChIP5"]                              #list defining "treatment" ChIP samples, IP samples
-#CONTROLS = config["samples"]["ChIP2", "ChIP4", "ChIP6"]                            #list defining "control" ChIP samples, input samples
 
 ##############
 # Desired output
@@ -68,6 +60,19 @@ rule all:
 
 
 ###############
+# Functions
+###############
+def is_single_end(sample, unit):
+    return pd.isnull(units.loc[(sample, unit), "fq2"])
+# this function checks if the the column 'fq2' from the unit.tsv is empty, if empty it defined the whole pipeline as single-end.
+
+def get_fastq(wildcards):
+    return units.loc[(wildcards.sample), ["fq1", "fq2"]].dropna()
+#he uses the function get_fastq() in order to defines his wildcards
+#(wildcards.sample, wildcards.unit) is used because units dataframe is double indexed otherwise it would throw an error
+
+
+###############
 # Rules
 ###############
 rule get_genome_fasta:
@@ -78,11 +83,7 @@ rule get_genome_fasta:
 
 rule trimmomatic:
     input:
-        #forward = FASTQ_DIR + "{sample}_1.fastq.gz",
-	#reverse = FASTQ_DIR + "{sample}_2.fastq.gz",
-	#12/08/18 JC : commented out lines 48,49, it makes more sense for me to call sample with the wildcards
-        forward_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["forward"],
-        reverse_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["reverse"],
+        get_fastq
         adapters = config["adapters"]
     output:
         forward_reads = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
