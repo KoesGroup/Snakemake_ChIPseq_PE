@@ -1,3 +1,0 @@
-sample	condition
-ChIP1	treatment
-ChIP2	control
