@@ -5,13 +5,13 @@
 ###############
 import os
 import pandas as pd
-
+from snakemake.utils import validate, min_version
 #############################################
 # Configuration and sample sheets
 #############################################
 configfile: "configs/config_tomato_sub.yaml"
 
-FASTQ_DIR = config["fastq_dir"]        # where to find the fastq files
+#FASTQ_DIR = config["fastq_dir"]        # where to find the fastq files
 WORKING_DIR = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
 RESULT_DIR = config["result_dir"]      # what you want to keep
 
@@ -19,30 +19,42 @@ GENOME_FASTA_URL = config["refs"]["genome_url"]
 GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
 TOTALCORES = 16                         #check this via 'grep -c processor /proc/cpuinfo'
 
-samples = pd.read_table('samples.txt',dtype=str).set_index(['sample'], drop=False)
-#he reads the table 'samples.tsv', that he pre-defined as 'samples' with the
-#config.yaml file. The second part of the function uses the column 'sample' within
-#'samples.tsv' for indexing the dataframe
-validate(samples, schema="schemas/samples.schema.yaml")
+samples = pd.read_table(config["samples"]).set_index("sample", drop=False)
+SAMPLES = list(set(samples.index.values))
 
-units = pd.read_table('units.txt',dtype=str).set_index(['sample'], drop=False)
-validate(units, schema="schemas/units.schema.yaml")
+units = pd.read_table(config["units"], dtype=str).set_index(["sample", "unit"], drop=False)
+units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
+UNITS = units.index.get_level_values('unit').unique().tolist()
+
+###############
+# Helper Functions
+###############
+def get_fastq(wildcards):
+    return units.loc[(wildcards.sample, wildcards.unit), ["fq1", "fq2"]].dropna()
+
+def get_forward_fastq(wildcards):
+    return units.loc[(wildcards.sample, wildcards.unit), ["fq1"]].dropna()
+
+def get_reverse_fastq(wildcards):
+    return units.loc[(wildcards.sample, wildcards.unit), ["fq2"]].dropna()
 
 ##############
 # Wildcards
 ##############
 wildcard_constraints:
+    sample = "[A-Za-z0-9]+"
 
-sample="[A-Za-z0-9]+"
+wildcard_constraints:
+    unit = "L[0-9]+"
 
 ##############
 # Desired output
 ##############
-BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=config["samples"])
-BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=config["samples"])
-FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
-BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=config["samples"])
-BIGWIG = expand(RESULT_DIR + "bigwig/{sample}.bw", sample=config["samples"])
+FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{unit}_{pair}_fastqc.zip", sample=SAMPLES,unit=UNITS, pair={"forward", "reverse"})
+BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai", sample=SAMPLES,unit=UNITS)
+BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam", sample=SAMPLES,unit=UNITS)
+BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}_{unit}.sorted.rmdup.bedgraph", sample=SAMPLES,unit=UNITS)
+BIGWIG = expand(RESULT_DIR + "bigwig/{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
 
 ################
 # Final output
@@ -58,20 +70,6 @@ rule all:
 
     shell:"#rm -rf {WORKING_DIR}"
 
-
-###############
-# Functions
-###############
-def is_single_end(sample, unit):
-    return pd.isnull(units.loc[(sample, unit), "fq2"])
-# this function checks if the the column 'fq2' from the unit.tsv is empty, if empty it defined the whole pipeline as single-end.
-
-def get_fastq(wildcards):
-    return units.loc[(wildcards.sample), ["fq1", "fq2"]].dropna()
-#he uses the function get_fastq() in order to defines his wildcards
-#(wildcards.sample, wildcards.unit) is used because units dataframe is double indexed otherwise it would throw an error
-
-
 ###############
 # Rules
 ###############
@@ -83,16 +81,16 @@ rule get_genome_fasta:
 
 rule trimmomatic:
     input:
-        get_fastq
+        reads = get_fastq,
         adapters = config["adapters"]
     output:
-        forward_reads = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse_reads = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
-        forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz"),
-        reverseUnpaired = temp(WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz")
+        forward_reads = WORKING_DIR + "trimmed/{sample}_{unit}_forward.fastq.gz",
+        reverse_reads = WORKING_DIR + "trimmed/{sample}_{unit}_reverse.fastq.gz",
+        forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}_{unit}_forward_unpaired.fastq.gz"),
+        reverseUnpaired = temp(WORKING_DIR + "trimmed/{sample}_{unit}_reverse_unpaired.fastq.gz")
     message: "trimming {wildcards.sample} reads"
     log:
-        RESULT_DIR + "logs/trimmomatic/{sample}.log"
+        RESULT_DIR + "logs/trimmomatic/{sample}_{unit}.log"
     params :
         seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
         palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
@@ -106,8 +104,7 @@ rule trimmomatic:
     threads: 10
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
-        "{input.forward_reads} "
-        "{input.reverse_reads} "
+        "{input.reads} "
         "{output.forward_reads} "
         "{output.forwardUnpaired} "
         "{output.reverse_reads} "
@@ -120,19 +117,19 @@ rule trimmomatic:
 
 rule fastqc:
     input:
-        fwd=WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        rev=WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
+        fwd=WORKING_DIR + "trimmed/{sample}_{unit}_forward.fastq.gz",
+        rev=WORKING_DIR + "trimmed/{sample}_{unit}_reverse.fastq.gz"
     output:
-        fwd=RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
-        rev=RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
+        fwd=RESULT_DIR + "fastqc/{sample}_{unit}_forward_fastqc.zip",
+        rev=RESULT_DIR + "fastqc/{sample}_{unit}_reverse_fastqc.zip"
     log:
-        RESULT_DIR + "logs/fastqc/{sample}.fastqc.log"
+        RESULT_DIR + "logs/fastqc/{sample}_{unit}.fastqc.log"
     params:
         RESULT_DIR + "fastqc/"
     message:
         "---Quality check of trimmed {wildcards.sample} sample with FASTQC" 		#removed, it was not working
     shell:
-        "fastqc --outdir={params} {input.fwd} {input.rev}"
+        "fastqc --outdir={params} {input.fwd} {input.rev} 2>{log}"
 
 
 rule index:
@@ -150,13 +147,13 @@ rule index:
 
 rule align:
     input:
-        forward = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
-        forwardUnpaired = WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz",
-        reverseUnpaired = WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz",
+        forward = WORKING_DIR + "trimmed/{sample}_{unit}_forward.fastq.gz",
+        reverse_reads = WORKING_DIR + "trimmed/{sample}_{unit}_reverse.fastq.gz",
+        forwardUnpaired = WORKING_DIR + "trimmed/{sample}_{unit}_forward_unpaired.fastq.gz",
+        reverseUnpaired = WORKING_DIR + "trimmed/{sample}_{unit}_reverse_unpaired.fastq.gz",
         index = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
     output:
-        temp(WORKING_DIR + "mapped/{sample}.bam")
+        temp(WORKING_DIR + "mapped/{sample}_{unit}.bam")
     message: "Mapping files"
     params:
         bowtie = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
@@ -172,36 +169,36 @@ rule align:
 
 rule sort:
     input:
-        WORKING_DIR + "mapped/{sample}.bam"
+        WORKING_DIR + "mapped/{sample}_{unit}.bam"
     output:
-        RESULT_DIR + "mapped/{sample}.sorted.bam"
+        RESULT_DIR + "mapped/{sample}_{unit}.sorted.bam"
     message:"sorting {wildcards.sample} bam file"
     threads: 10
     shell:"samtools sort -@ {threads} -o {output} {input}"
 
 rule rmdup:
     input:
-        RESULT_DIR + "mapped/{sample}.sorted.bam"
+        RESULT_DIR + "mapped/{sample}_{unit}.sorted.bam"
     output:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+        RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam"
     message: "Removing duplicate from file {input}"
     shell:
         "samtools rmdup {input} {output}"                       #samtools manual says "This command is obsolete. Use markdup instead."
 
 rule bam_index:
     input:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+        RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam"
     output:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai"
+        RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai"
     message: "Indexing {wildcards.sample} for rapid access"
     shell:
         "samtools index {input}"
 
 rule bedgraph:
     input:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+        RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam"
     output:
-        RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph"
+        RESULT_DIR + "bedgraph/{sample}_{unit}.sorted.rmdup.bedgraph"
     params:
         genome = WORKING_DIR + "genome"
     message:
@@ -215,15 +212,14 @@ rule bedgraph:
 
 rule bigwig:
     input:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+        RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam"
     output:
-        RESULT_DIR + "bigwig/{sample}.bw"
+        RESULT_DIR + "bigwig/{sample}_{unit}.bw"
     message:
         "Converting {input} bam into bigwig file"
     log:
-        RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
+        RESULT_DIR + "logs/deeptools/{sample}_{unit}_bamtobigwig.log"
     params:
         EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]) #take argument separated as a list separated with a space
     shell:
         "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} 2>{log}"
- #

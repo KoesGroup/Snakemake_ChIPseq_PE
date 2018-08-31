@@ -5,9 +5,6 @@ properties:
   sample:
     type: string
     description: sample name/id the unit has been sequenced from
-  unit:
-    type: string
-    description: unit id
   fq1:
     type: string
     description: path to FASTQ file
@@ -16,5 +13,4 @@ properties:
     description: path to second FASTQ file (leave empty in case of single-end)
 required:
   - sample
-  - unit
   - fq1
