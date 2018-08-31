@@ -32,11 +32,17 @@ UNITS = units.index.get_level_values('unit').unique().tolist()
 def get_fastq(wildcards):
     return units.loc[(wildcards.sample, wildcards.unit), ["fq1", "fq2"]].dropna()
 
-def get_forward_fastq(wildcards):
-    return units.loc[(wildcards.sample, wildcards.unit), ["fq1"]].dropna()
+#def get_forward_fastq(wildcards):
+    #return units.loc[(wildcards.sample, wildcards.unit), ["fq1"]].dropna()         #unused
 
-def get_reverse_fastq(wildcards):
-    return units.loc[(wildcards.sample, wildcards.unit), ["fq2"]].dropna()
+#def get_reverse_fastq(wildcards):
+    #return units.loc[(wildcards.sample, wildcards.unit), ["fq2"]].dropna()         #unused
+
+def get_treatment(wildcards):
+    return sample.loc[(wildcards.sample), ["condition"] == 'treatment'].dropna()
+
+def get_control(wildcards):
+    return sample.loc[(wildcards.sample), ["condition"] == 'control'].dropna()
 
 ##############
 # Wildcards
@@ -55,6 +61,7 @@ BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai", s
 BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam", sample=SAMPLES,unit=UNITS)
 BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}_{unit}.sorted.rmdup.bedgraph", sample=SAMPLES,unit=UNITS)
 BIGWIG = expand(RESULT_DIR + "bigwig/{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
+BAM_COMPARE = expand(RESULT_DIR + "bamcompare/log2_{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
 
 ################
 # Final output
@@ -65,7 +72,8 @@ rule all:
         BAM_RMDUP,
         FASTQC_REPORTS,
         BEDGRAPH,
-        BIGWIG
+        BIGWIG,
+        BAM_COMPARE
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -223,3 +231,12 @@ rule bigwig:
         EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]) #take argument separated as a list separated with a space
     shell:
         "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} 2>{log}"
+
+rule bamcompare:
+    input:
+        treatment = get_treatment,
+        control = get_control
+    output:
+        RESULT_DIR + "bamcompare/log2_{sample}_{unit}.bw"
+    shell:
+        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output}"
