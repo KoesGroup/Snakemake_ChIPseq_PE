@@ -148,7 +148,7 @@ rule index:
 rule align:
     input:
         forward = WORKING_DIR + "trimmed/{sample}_{unit}_forward.fastq.gz",
-        reverse_reads = WORKING_DIR + "trimmed/{sample}_{unit}_reverse.fastq.gz",
+        reverse = WORKING_DIR + "trimmed/{sample}_{unit}_reverse.fastq.gz",
         forwardUnpaired = WORKING_DIR + "trimmed/{sample}_{unit}_forward_unpaired.fastq.gz",
         reverseUnpaired = WORKING_DIR + "trimmed/{sample}_{unit}_reverse_unpaired.fastq.gz",
         index = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
