@@ -26,6 +26,8 @@ units = pd.read_table(config["units"], dtype=str).set_index(["sample", "unit"], 
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
 UNITS = units.index.get_level_values('unit').unique().tolist()
 
+CASES = ['ChIP1']
+CONTROLS = ['ChIP2']
 ###############
 # Helper Functions
 ###############
@@ -39,10 +41,10 @@ def get_fastq(wildcards):
     #return units.loc[(wildcards.sample, wildcards.unit), ["fq2"]].dropna()         #unused
 
 def get_treatment(wildcards):
-    return sample.loc[(wildcards.sample), ["condition"] == 'treatment'].dropna()
+    return samples.loc[(wildcards.sample), ["condition"] == 'treatment'].dropna()
 
 def get_control(wildcards):
-    return sample.loc[(wildcards.sample), ["condition"] == 'control'].dropna()
+    return samples.loc[(wildcards.sample), ["condition"] == 'control'].dropna()
 
 ##############
 # Wildcards
@@ -61,7 +63,7 @@ BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai", s
 BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam", sample=SAMPLES,unit=UNITS)
 BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}_{unit}.sorted.rmdup.bedgraph", sample=SAMPLES,unit=UNITS)
 BIGWIG = expand(RESULT_DIR + "bigwig/{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
-BAM_COMPARE = expand(RESULT_DIR + "bamcompare/log2_{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
+BAM_COMPARE = expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS,unit=UNITS) #add zip function in the expand to compare respective treamtent and control
 
 ################
 # Final output
@@ -234,9 +236,9 @@ rule bigwig:
 
 rule bamcompare:
     input:
-        treatment = get_treatment,
-        control = get_control
+        treatment = RESULT_DIR + "mapped/{treatment}_{unit}.sorted.bam",
+        control = RESULT_DIR + "mapped/{control}_{unit}.sorted.bam"
     output:
-        RESULT_DIR + "bamcompare/log2_{sample}_{unit}.bw"
+        bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw"
     shell:
-        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output}"
+        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig}"
