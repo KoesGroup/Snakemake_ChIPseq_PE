@@ -1,0 +1,8 @@
+channels:
+  - conda-forge
+  - bioconda
+  - r
+  - defaults
+dependencies:
+  - macs2=2.1.1.20160309
+  

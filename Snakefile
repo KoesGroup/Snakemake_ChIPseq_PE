@@ -64,8 +64,8 @@ BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam", sampl
 BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}_{unit}.sorted.rmdup.bedgraph", sample=SAMPLES,unit=UNITS)
 BIGWIG = expand(RESULT_DIR + "bigwig/{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
 BAM_COMPARE = expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS,unit=UNITS) #add zip function in the expand to compare respective treatment and control
-BED_NARROW = expand(RESULT_DIR + "bed/{treatment}_{control}_{unit}_peaks.narrow_peaks", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
-BED_BROAD = expand(RESULT_DIR + "bed/{treatment}_{control}_{unit}_peaks.broad_peaks", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
+BED_NARROW = expand(RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
+BED_BROAD = expand(RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.broadPeak", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
 ################
 # Final output
 ################
@@ -253,29 +253,30 @@ rule call_narrow_peaks:
         treatment = RESULT_DIR + "mapped/{treatment}_{unit}.sorted.rmdup.bam",
         control = RESULT_DIR + "mapped/{control}_{unit}.sorted.rmdup.bam"
     output:
-        bed = RESULT_DIR + "bed/{treatment}_{control}_{unit}_peaks.narrow_peaks"
+        bed = RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.narrowPeak"
     params:
-        name = "{treatment}_vs_{control}"
+        name = "{treatment}_vs_{control}_{unit}"
+    conda:
+        "envs/mac2_env.yaml"
     shell:
-        "macs2 callpeak "
-        "-t {input.treatment} "
-        "-c {input.control} "
-        "-f BAM "
-        "-g mm "                                     # -g define the mappable genome size, for human change 'mm' to 'hs'
-        "--name {params.name} "                      # --name will be used to create output files like NAME_peaks.xls', 'NAME_negative_peaks.xls', 'NAME_peaks.bed' , 'NAME_summits.bed', 'NAME_model.r'
-        "--nomodel "
-        "--bdg "                                     # --bdg provides the files for the calculation of the FDR
-        "-q 0.05 "                                   # -q define the minimum FDR to call significant region, default is 0.05
-        "--outdir "RESULT_DIR + bed/" "
-
+        """
+        source activate macs2
+        macs2 callpeak -t {input.treatment} -c {input.control} -f BAM -g mm --name {params.name} --nomodel --bdg -q 0.05 --outdir results/bed/
+        """
+# -g define the mappable genome size, for human change 'mm' to 'hs'
+# --name will be used to create output files like NAME_peaks.xls', 'NAME_negative_peaks.xls', 'NAME_peaks.bed' , 'NAME_summits.bed', 'NAME_model.r'
+# --bdg provides the files for the calculation of the FDR
+# -q define the minimum FDR to call significant region, default is 0.05
 rule call_broad_peaks:
     input:
         treatment = RESULT_DIR + "mapped/{treatment}_{unit}.sorted.rmdup.bam",
         control = RESULT_DIR + "mapped/{control}_{unit}.sorted.rmdup.bam"
     output:
-        bed = RESULT_DIR + "bed/{treatment}_{control}_{unit}_peaks.broad_peaks"
+        bed = RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.broadPeak"
     params:
-        name = "{treatment}_vs_{control}"
+        name = "{treatment}_vs_{control}_{unit}"
+    conda:
+        "envs/mac2_env.yaml"
     shell:
         "macs2 callpeak "
         "-t {input.treatment} "
@@ -288,4 +289,4 @@ rule call_broad_peaks:
         "--nomodel "
         "--bdg "
         "-q 0.05 "                                    # -q define the minimum FDR to call significant region, default is 0.05
-        "--outdir "RESULT_DIR + bed/" "
+        "--outdir results/bed/ "
