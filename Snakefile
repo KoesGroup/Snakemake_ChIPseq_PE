@@ -26,8 +26,8 @@ units = pd.read_table(config["units"], dtype=str).set_index(["sample", "unit"], 
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
 UNITS = units.index.get_level_values('unit').unique().tolist()
 
-CASES = ['ChIP1']
-CONTROLS = ['ChIP2']
+CASES = ['ChIP1']                       #complete list according to the sample.tsv file
+CONTROLS = ['ChIP2']                    #complete list according to the sample.tsv file
 ###############
 # Helper Functions
 ###############
@@ -63,8 +63,9 @@ BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai", s
 BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam", sample=SAMPLES,unit=UNITS)
 BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}_{unit}.sorted.rmdup.bedgraph", sample=SAMPLES,unit=UNITS)
 BIGWIG = expand(RESULT_DIR + "bigwig/{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
-BAM_COMPARE = expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS,unit=UNITS) #add zip function in the expand to compare respective treamtent and control
-
+BAM_COMPARE = expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS,unit=UNITS) #add zip function in the expand to compare respective treatment and control
+BED_NARROW = expand(RESULT_DIR + "bed/{treatment}_{control}_{unit}_peaks.narrow_peaks", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
+BED_BROAD = expand(RESULT_DIR + "bed/{treatment}_{control}_{unit}_peaks.broad_peaks", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
 ################
 # Final output
 ################
@@ -75,7 +76,9 @@ rule all:
         FASTQC_REPORTS,
         BEDGRAPH,
         BIGWIG,
-        BAM_COMPARE
+        BAM_COMPARE,
+        BED_NARROW,
+        BED_BROAD
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -236,9 +239,53 @@ rule bigwig:
 
 rule bamcompare:
     input:
-        treatment = RESULT_DIR + "mapped/{treatment}_{unit}.sorted.bam",
-        control = RESULT_DIR + "mapped/{control}_{unit}.sorted.bam"
+        treatment = RESULT_DIR + "mapped/{treatment}_{unit}.sorted.rmdup.bam",              #input requires an indexed bam file
+        control = RESULT_DIR + "mapped/{control}_{unit}.sorted.rmdup.bam"                   #input requires an indexed bam file
     output:
         bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw"
+    message:
+        "Running bamCompare"
     shell:
         "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig}"
+
+rule call_narrow_peaks:
+    input:
+        treatment = RESULT_DIR + "mapped/{treatment}_{unit}.sorted.rmdup.bam",
+        control = RESULT_DIR + "mapped/{control}_{unit}.sorted.rmdup.bam"
+    output:
+        bed = RESULT_DIR + "bed/{treatment}_{control}_{unit}_peaks.narrow_peaks"
+    params:
+        name = "{treatment}_vs_{control}"
+    shell:
+        "macs2 callpeak "
+        "-t {input.treatment} "
+        "-c {input.control} "
+        "-f BAM "
+        "-g mm "                                     # -g define the mappable genome size, for human change 'mm' to 'hs'
+        "--name {params.name} "                      # --name will be used to create output files like NAME_peaks.xls', 'NAME_negative_peaks.xls', 'NAME_peaks.bed' , 'NAME_summits.bed', 'NAME_model.r'
+        "--nomodel "
+        "--bdg "                                     # --bdg provides the files for the calculation of the FDR
+        "-q 0.05 "                                   # -q define the minimum FDR to call significant region, default is 0.05
+        "--outdir "RESULT_DIR + bed/" "
+
+rule call_broad_peaks:
+    input:
+        treatment = RESULT_DIR + "mapped/{treatment}_{unit}.sorted.rmdup.bam",
+        control = RESULT_DIR + "mapped/{control}_{unit}.sorted.rmdup.bam"
+    output:
+        bed = RESULT_DIR + "bed/{treatment}_{control}_{unit}_peaks.broad_peaks"
+    params:
+        name = "{treatment}_vs_{control}"
+    shell:
+        "macs2 callpeak "
+        "-t {input.treatment} "
+        "-c {input.control} "
+        "-f BAM "
+        "--broad "
+        "--broad-cutoff 0.1 "
+        "-g mm "                                     # -g define the mappable genome size, for human change 'mm' to 'hs'
+        "--name {params.name} "                      # --name will be used to create output files like NAME_peaks.xls', 'NAME_negative_peaks.xls', 'NAME_peaks.bed' , 'NAME_summits.bed', 'NAME_model.r'
+        "--nomodel "
+        "--bdg "
+        "-q 0.05 "                                    # -q define the minimum FDR to call significant region, default is 0.05
+        "--outdir "RESULT_DIR + bed/" "
