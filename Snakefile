@@ -254,6 +254,8 @@ rule call_narrow_peaks:
         control = RESULT_DIR + "mapped/{control}_{unit}.sorted.rmdup.bam"
     output:
         bed = RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.narrowPeak"
+    message:
+        "Calling narrowPeak"
     params:
         name = "{treatment}_vs_{control}_{unit}"                                #this option will give the output name, has to be similar to the output
     conda:
@@ -273,6 +275,8 @@ rule call_broad_peaks:
         control = RESULT_DIR + "mapped/{control}_{unit}.sorted.rmdup.bam"
     output:
         bed = RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.broadPeak"
+    message:
+        "Calling broadPeak"    
     params:
         name = "{treatment}_vs_{control}_{unit}"
     conda:
