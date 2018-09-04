@@ -62,3 +62,10 @@ bamCoverage:
   params:
     EFFECTIVEGENOMESIZE: '82000000' #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf
                                     #option is --effectiveGenomeSize
+
+# macs2 Parameters:
+          # regular peak calling : macs2 callpeak -t ChIP.bam -c Control.bam -f BAM -g hs -n test -B -q 0.01
+          # broad peak calling : macs2 callpeak -t ChIP.bam -c Control.bam --broad -g hs --broad-cutoff 0.1
+macs2:
+  genomesize: "--gsize mm"        #here I used 'mm' because it's the closest to tomato, for human change to 'hs'
+  format: "--format BAM"

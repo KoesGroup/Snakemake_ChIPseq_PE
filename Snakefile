@@ -255,7 +255,7 @@ rule call_narrow_peaks:
     output:
         bed = RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.narrowPeak"
     params:
-        name = "{treatment}_vs_{control}_{unit}"
+        name = "{treatment}_vs_{control}_{unit}"                                #this option will give the output name, has to be similar to the output
     conda:
         "envs/mac2_env.yaml"
     shell:
