@@ -257,13 +257,16 @@ rule call_narrow_peaks:
     message:
         "Calling narrowPeak"
     params:
-        name = "{treatment}_vs_{control}_{unit}"                                #this option will give the output name, has to be similar to the output
+        name = "{treatment}_vs_{control}_{unit}",        #this option will give the output name, has to be similar to the output
+        format = str(config['macs2']['format']),
+        genomesize = str(config['macs2']['genomesize']),
+        qvalue = str(config['macs2']['qvalue'])
     conda:
         "envs/mac2_env.yaml"
     shell:
         """
         source activate macs2
-        macs2 callpeak -t {input.treatment} -c {input.control} -f BAM -g mm --name {params.name} --nomodel --bdg -q 0.05 --outdir results/bed/
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/
         """
 # -g define the mappable genome size, for human change 'mm' to 'hs'
 # --name will be used to create output files like NAME_peaks.xls', 'NAME_negative_peaks.xls', 'NAME_peaks.bed' , 'NAME_summits.bed', 'NAME_model.r'
@@ -276,21 +279,16 @@ rule call_broad_peaks:
     output:
         bed = RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.broadPeak"
     message:
-        "Calling broadPeak"    
+        "Calling broadPeak"
     params:
-        name = "{treatment}_vs_{control}_{unit}"
+        name = "{treatment}_vs_{control}_{unit}",
+        format = str(config['macs2']['format']),
+        genomesize = str(config['macs2']['genomesize']),
+        qvalue = str(config['macs2']['qvalue'])
     conda:
         "envs/mac2_env.yaml"
     shell:
-        "macs2 callpeak "
-        "-t {input.treatment} "
-        "-c {input.control} "
-        "-f BAM "
-        "--broad "
-        "--broad-cutoff 0.1 "
-        "-g mm "                                     # -g define the mappable genome size, for human change 'mm' to 'hs'
-        "--name {params.name} "                      # --name will be used to create output files like NAME_peaks.xls', 'NAME_negative_peaks.xls', 'NAME_peaks.bed' , 'NAME_summits.bed', 'NAME_model.r'
-        "--nomodel "
-        "--bdg "
-        "-q 0.05 "                                    # -q define the minimum FDR to call significant region, default is 0.05
-        "--outdir results/bed/ "
+        """
+        source activate macs2
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/
+        """

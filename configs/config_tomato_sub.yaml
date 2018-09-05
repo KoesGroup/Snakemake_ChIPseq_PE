@@ -60,12 +60,16 @@ bowtie2:
 
 bamCoverage:
   params:
-    EFFECTIVEGENOMESIZE: '82000000' #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf
+    EFFECTIVEGENOMESIZE: '820000000' #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf
                                     #option is --effectiveGenomeSize
 
 # macs2 Parameters:
+          # for information over macs2, refer to https://github.com/taoliu/MACS
           # regular peak calling : macs2 callpeak -t ChIP.bam -c Control.bam -f BAM -g hs -n test -B -q 0.01
           # broad peak calling : macs2 callpeak -t ChIP.bam -c Control.bam --broad -g hs --broad-cutoff 0.1
 macs2:
   genomesize: "--gsize mm"        #here I used 'mm' because it's the closest to tomato, for human change to 'hs'
-  format: "--format BAM"
+  format: "--format BAMPE"        #Use BAMPE to activate the paired end data, MACS will use the actual insert size of pairs of reads to build the fragemnt pileup.
+  qvalue: "0.05"                  #default is 0.05
+  outdir : "results/bed/"
+  bandwidth: "--bw 350"           #the bandwidth is used to scan the genome for model building. To be set to the expected sonication fragment size.
