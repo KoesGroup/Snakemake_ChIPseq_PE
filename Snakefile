@@ -75,8 +75,8 @@ rule all:
         BAM_RMDUP,
         FASTQC_REPORTS,
         BEDGRAPH,
-        BIGWIG,
-        BAM_COMPARE,
+        #BIGWIG,
+        #BAM_COMPARE,
         BED_NARROW,
         BED_BROAD
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
@@ -115,6 +115,8 @@ rule trimmomatic:
         minReadLen =                str(config['trimmomatic']['minReadLength']),
         phred = 		            str(config["trimmomatic"]["phred"])
     threads: 10
+    conda:
+        "envs/trimmomatic_env.yaml"
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
         "{input.reads} "
@@ -140,7 +142,9 @@ rule fastqc:
     params:
         RESULT_DIR + "fastqc/"
     message:
-        "---Quality check of trimmed {wildcards.sample} sample with FASTQC" 		#removed, it was not working
+        "---Quality check of trimmed {wildcards.sample} sample with FASTQC"
+    conda:
+        "envs/fastqc_env.yaml"
     shell:
         "fastqc --outdir={params} {input.fwd} {input.rev} 2>{log}"
 
@@ -156,6 +160,8 @@ rule index:
     params:
         WORKING_DIR + "genome"
     threads: 10
+    conda:
+        "envs/samtools_bowtie_env.yaml"
     shell:"bowtie2-build --threads {threads} {input} {params}"
 
 rule align:
@@ -172,6 +178,8 @@ rule align:
         bowtie = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
         index = WORKING_DIR + "genome"
     threads: 10
+    conda:
+        "envs/samtools_bowtie_env.yaml"
     shell:
         "bowtie2 {params.bowtie} "
         "--threads {threads} "
@@ -187,25 +195,34 @@ rule sort:
         RESULT_DIR + "mapped/{sample}_{unit}.sorted.bam"
     message:"sorting {wildcards.sample} bam file"
     threads: 10
+    conda:
+        "envs/samtools.yaml"
     shell:"samtools sort -@ {threads} -o {output} {input}"
 
 rule rmdup:
     input:
         RESULT_DIR + "mapped/{sample}_{unit}.sorted.bam"
     output:
-        RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam"
+        bam = RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam",
+        bai = RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai"        #bai files required for the bigwig and bamCompare rules
     message: "Removing duplicate from file {input}"
+    conda:
+        "envs/samtools.yaml"
     shell:
-        "samtools rmdup {input} {output}"                       #samtools manual says "This command is obsolete. Use markdup instead."
-
-rule bam_index:
-    input:
-        RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam"
-    output:
-        RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai"
-    message: "Indexing {wildcards.sample} for rapid access"
-    shell:
-        "samtools index {input}"
+        """
+        samtools rmdup {input} {output.bam}                     #samtools manual says "This command is obsolete. Use markdup instead."
+        samtools index {output.bam}
+        """
+#rule bam_index:
+    #input:
+        #RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam"
+    #output:
+        #RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai"
+    #message: "Indexing {wildcards.sample} for rapid access"
+    #conda:
+        #"envs/samtools.yaml"
+    #shell:
+        #"samtools index {input}"
 
 rule bedgraph:
     input:
@@ -216,12 +233,10 @@ rule bedgraph:
         genome = WORKING_DIR + "genome"
     message:
         "Creation of {input} bedgraph file"
+    conda:
+        "envs/deeptools.yaml"
     shell:
         "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
-        # require a sorted bam file as input
-        # -ibam the input file is in BAM format
-        # -bga  Report Depth in BedGraph format, regions with zero coverage are also reported. Extract those regions with "grep -w 0$"
-        # -pc Calculate coverage of pair-end fragments. Works for BAM files only.
 
 rule bigwig:
     input:
@@ -234,6 +249,8 @@ rule bigwig:
         RESULT_DIR + "logs/deeptools/{sample}_{unit}_bamtobigwig.log"
     params:
         EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]) #take argument separated as a list separated with a space
+    conda:
+        "envs/deeptools.yaml"
     shell:
         "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} 2>{log}"
 
@@ -245,6 +262,8 @@ rule bamcompare:
         bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw"
     message:
         "Running bamCompare"
+    conda:
+        "envs/deeptools.yaml"
     shell:
         "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig}"
 
@@ -265,13 +284,9 @@ rule call_narrow_peaks:
         "envs/mac2_env.yaml"
     shell:
         """
-        source activate macs2
         macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/
         """
-# -g define the mappable genome size, for human change 'mm' to 'hs'
-# --name will be used to create output files like NAME_peaks.xls', 'NAME_negative_peaks.xls', 'NAME_peaks.bed' , 'NAME_summits.bed', 'NAME_model.r'
-# --bdg provides the files for the calculation of the FDR
-# -q define the minimum FDR to call significant region, default is 0.05
+
 rule call_broad_peaks:
     input:
         treatment = RESULT_DIR + "mapped/{treatment}_{unit}.sorted.rmdup.bam",
@@ -289,6 +304,5 @@ rule call_broad_peaks:
         "envs/mac2_env.yaml"
     shell:
         """
-        source activate macs2
         macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/
         """
