@@ -39,8 +39,9 @@ Peak calling rules using macs2 require the activation of the 'macs2' environment
 Use the command `snakemake -np` to perform a dry run that prints out the rules and commands.
 
 ## Real run
-Simply type `Snakemake` and provide the number of cores with `--cores 10` for ten cores for instance.
+Simply type `Snakemake --use-conda` and provide the number of cores with `--cores 10` for ten cores for instance.
 For cluster execution, please refer to the [Snakemake reference](https://snakemake.readthedocs.io/en/stable/executable.html#cluster-execution).
+Please pay attention to `--use-conda`, it is required for the installation and loading of the dependencies used by the rules of the pipeline.
 
 # Main outputs
 The main output are for now sorted bam files, qc files, rmdup.sorted.bam files.
