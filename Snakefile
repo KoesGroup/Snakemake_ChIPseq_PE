@@ -172,7 +172,7 @@ rule rmdup:
         RESULT_DIR + "mapped/{sample}.sorted.bam"
     output:
         RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
-    message: "Removing duplicate from file {input}"
+    message: "Removing duplicate from file {wildcards.sample}"
     shell:
         "samtools rmdup {input} {output}"                       #samtools manual says "This command is obsolete. Use markdup instead."
 
@@ -193,10 +193,10 @@ rule bedgraph:
     params:
         genome = WORKING_DIR + "genome"
     message:
-        "Creation of {input} bedgraph file"
+        "Creation of {wildcards.sample} bedgraph file"
     shell:
         "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
-        # require a sorted bam file as input
+        # require a sorted bam file as inputmessa
         # -ibam the input file is in BAM format
         # -bga  Report Depth in BedGraph format, regions with zero coverage are also reported. Extract those regions with "grep -w 0$"
         # -pc Calculate coverage of pair-end fragments. Works for BAM files only.
@@ -207,7 +207,7 @@ rule bigwig:
     output:
         RESULT_DIR + "bigwig/{sample}.bw"
     message:
-        "Converting {input} bam into bigwig file"
+        "Converting {wildcards.sample} bam into bigwig file"
     log:
         RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
     params:
