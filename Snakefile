@@ -1,23 +1,41 @@
-# Snakemake file for ChIP-Seq analysis
+# Snakemake file for ChIP-Seq PE analysis
 
 ###############
 # Libraries
 ###############
+
 import os
 import pandas as pd
 from snakemake.utils import validate, min_version
 #############################################
 # Configuration and sample sheets
 #############################################
+
 configfile: "configs/config_tomato_sub.yaml"
 
-#FASTQ_DIR = config["fastq_dir"]        # where to find the fastq files
 WORKING_DIR = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
 RESULT_DIR = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL = config["refs"]["genome_url"]
 GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
-TOTALCORES = 16                         #check this via 'grep -c processor /proc/cpuinfo'
+TOTALCORES = 16                             #check this via 'grep -c processor /proc/cpuinfo'
+
+###############
+# Helper Functions
+###############
+def get_fastq(wildcards):
+    return units.loc[(wildcards.sample, wildcards.unit), ["fq1", "fq2"]].dropna()
+
+def get_samples_per_treatment(input_df="units.tsv",colsamples="sample",coltreatment="condition",treatment="control"):
+    """This function returns a list of samples that correspond to the same experimental condition"""
+    df = pd.read_table(input_df)
+    df = df.loc[df[coltreatment] == treatment]
+    filtered_samples = df[colsamples].tolist()
+    return filtered_samples
+
+##############
+# Samples and conditions
+##############
 
 samples = pd.read_table(config["samples"]).set_index("sample", drop=False)
 SAMPLES = list(set(samples.index.values))
@@ -26,25 +44,8 @@ units = pd.read_table(config["units"], dtype=str).set_index(["sample", "unit"], 
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
 UNITS = units.index.get_level_values('unit').unique().tolist()
 
-CASES = ['ChIP1']                       #complete list according to the sample.tsv file
-CONTROLS = ['ChIP2']                    #complete list according to the sample.tsv file
-###############
-# Helper Functions
-###############
-def get_fastq(wildcards):
-    return units.loc[(wildcards.sample, wildcards.unit), ["fq1", "fq2"]].dropna()
-
-#def get_forward_fastq(wildcards):
-    #return units.loc[(wildcards.sample, wildcards.unit), ["fq1"]].dropna()         #unused
-
-#def get_reverse_fastq(wildcards):
-    #return units.loc[(wildcards.sample, wildcards.unit), ["fq2"]].dropna()         #unused
-
-def get_treatment(wildcards):
-    return samples.loc[(wildcards.sample), ["condition"] == 'treatment'].dropna()
-
-def get_control(wildcards):
-    return samples.loc[(wildcards.sample), ["condition"] == 'control'].dropna()
+CASES = get_samples_per_treatment(treatment="control")
+CONTROLS = get_samples_per_treatment(treatment="treatment")
 
 ##############
 # Wildcards
@@ -58,15 +59,17 @@ wildcard_constraints:
 ##############
 # Desired output
 ##############
-FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{unit}_{pair}_fastqc.zip", sample=SAMPLES,unit=UNITS, pair={"forward", "reverse"})
-BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai", sample=SAMPLES,unit=UNITS)
-BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam", sample=SAMPLES,unit=UNITS)
-BEDGRAPH = expand(RESULT_DIR + "bedgraph/{sample}_{unit}.sorted.rmdup.bedgraph", sample=SAMPLES,unit=UNITS)
-BIGWIG = expand(RESULT_DIR + "bigwig/{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
-BAM_COMPARE = expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS,unit=UNITS) #add zip function in the expand to compare respective treatment and control
-BED_NARROW = expand(RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
-BED_BROAD = expand(RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.broadPeak", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
-################
+
+FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}_{unit}_{pair}_fastqc.zip", sample=SAMPLES,unit=UNITS, pair={"forward", "reverse"})
+BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai", sample=SAMPLES,unit=UNITS)
+BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam", sample=SAMPLES,unit=UNITS)
+BEDGRAPH        =     expand(RESULT_DIR + "bedgraph/{sample}_{unit}.sorted.rmdup.bedgraph", sample=SAMPLES,unit=UNITS)
+BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
+BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS,unit=UNITS) #add zip function in the expand to compare respective treatment and control
+BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
+BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.broadPeak", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
+
+###############
 # Final output
 ################
 rule all:
@@ -75,10 +78,10 @@ rule all:
         BAM_RMDUP,
         FASTQC_REPORTS,
         BEDGRAPH,
-        #BIGWIG,
-        #BAM_COMPARE,
+        BIGWIG,
+        BAM_COMPARE,
         BED_NARROW,
-        BED_BROAD
+        #BED_BROAD
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -148,7 +151,6 @@ rule fastqc:
     shell:
         "fastqc --outdir={params} {input.fwd} {input.rev} 2>{log}"
 
-
 rule index:
     input:
         WORKING_DIR + "genome.fasta"
@@ -205,24 +207,17 @@ rule rmdup:
     output:
         bam = RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam",
         bai = RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai"        #bai files required for the bigwig and bamCompare rules
-    message: "Removing duplicate from file {input}"
+    message: "Removing duplicate from file {wildcards.sample}"
+    log:
+        RESULT_DIR + "logs/samtools/{sample}_{unit}.sorted.rmdup.bam.log"
     conda:
         "envs/samtools.yaml"
     shell:
         """
-        samtools rmdup {input} {output.bam}                     #samtools manual says "This command is obsolete. Use markdup instead."
+        samtools rmdup {input} {output.bam}
         samtools index {output.bam}
         """
-#rule bam_index:
-    #input:
-        #RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam"
-    #output:
-        #RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.bam.bai"
-    #message: "Indexing {wildcards.sample} for rapid access"
-    #conda:
-        #"envs/samtools.yaml"
-    #shell:
-        #"samtools index {input}"
+        #samtools manual says "This command is obsolete. Use markdup instead
 
 rule bedgraph:
     input:
@@ -232,7 +227,9 @@ rule bedgraph:
     params:
         genome = WORKING_DIR + "genome"
     message:
-        "Creation of {input} bedgraph file"
+        "Creation of {wildcards.sample} bedgraph file"
+    log:
+        RESULT_DIR + "logs/deeptools/{sample}_{unit}.sorted.rmdup.bedgraph.log"
     conda:
         "envs/deeptools.yaml"
     shell:
@@ -262,6 +259,8 @@ rule bamcompare:
         bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw"
     message:
         "Running bamCompare"
+    log:
+        RESULT_DIR + "logs/deeptools/log2_{treatment}_{control}_{unit}.bamcompare.bw.log"
     conda:
         "envs/deeptools.yaml"
     shell:
@@ -280,8 +279,10 @@ rule call_narrow_peaks:
         format = str(config['macs2']['format']),
         genomesize = str(config['macs2']['genomesize']),
         qvalue = str(config['macs2']['qvalue'])
+    log:
+        RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_{unit}_peaks.narrowPeak.log"
     conda:
-        "envs/mac2_env.yaml"
+        "envs/macs2_env.yaml"
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/
@@ -300,8 +301,10 @@ rule call_broad_peaks:
         format = str(config['macs2']['format']),
         genomesize = str(config['macs2']['genomesize']),
         qvalue = str(config['macs2']['qvalue'])
+    log:
+        RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_{unit}_peaks.broadPeak.log"
     conda:
-        "envs/mac2_env.yaml"
+        "envs/macs2_env.yaml"
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/
