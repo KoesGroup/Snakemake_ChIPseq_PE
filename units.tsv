@@ -1,3 +1,7 @@
-sample	unit	fq1	fq2
-ChIP1	L1	fastq/sub_ChIP1_1.fq	fastq/sub_ChIP1_2.fq
-ChIP2	L1	fastq/sub_ChIP2_1.fq	fastq/sub_ChIP2_2.fq
+sample	unit	fq1	fq2	condition
+ChIP1	L1	fastq/sub_ChIP1_1.fq	fastq/sub_ChIP1_2.fq	treatment
+ChIP2	L1	fastq/sub_ChIP2_1.fq	fastq/sub_ChIP2_2.fq	control
+ChIP3	L1	fastq/sub_ChIP1_1.fq	fastq/sub_ChIP1_2.fq	treatment
+ChIP4	L1	fastq/sub_ChIP2_1.fq	fastq/sub_ChIP2_2.fq	control
+ChIP5	L1	fastq/sub_ChIP1_1.fq	fastq/sub_ChIP1_2.fq	treatment
+ChIP6	L1	fastq/sub_ChIP2_1.fq	fastq/sub_ChIP2_2.fq	control
