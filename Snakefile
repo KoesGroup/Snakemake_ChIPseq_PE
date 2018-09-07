@@ -241,7 +241,7 @@ rule bigwig:
     output:
         RESULT_DIR + "bigwig/{sample}_{unit}.bw"
     message:
-        "Converting {input} bam into bigwig file"
+        "Converting {wildcards.sample} bam into bigwig file"
     log:
         RESULT_DIR + "logs/deeptools/{sample}_{unit}_bamtobigwig.log"
     params:
