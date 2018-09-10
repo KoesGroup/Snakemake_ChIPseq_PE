@@ -17,9 +17,9 @@ Map paired-end Illumina ChIP-seq data.
 # Usage
 
 ## Conda environment
-First, you need to install all softwares and packages needed with the [Conda package manager](https://conda.io/docs/using/envs.html).  
+First, you need to install all softwares and packages needed with the [Conda package manager](https://conda.io/docs/using/envs.html).
 1. Create a virtual environment named "chipseq" from the `environment.yaml` file with the following command: `conda env create --name chipseq --file ~/envs/global_env.yaml`
-2. Then, activate this virtual environment with `source activate dmc1`    
+2. Then, activate this virtual environment with `source activate dmc1`
 Now, all softwares and packages versions in use are the one listed in the `global_env.yaml` file.
 
 ## Configuration file
@@ -29,12 +29,19 @@ The `~/configs/config_tomato_sub.yaml` file specifies the sample list, the genom
 The Snakemake pipeline/workflow management system reads a master file (often called `Snakefile`) to list the steps to be executed and defining their order.
 It has many rich features. Read more [here](https://snakemake.readthedocs.io/en/stable/).
 
+## Samples
+Samples are listed in the `units.tsv` and `sample.tsv` files. Change files according to the sample you will use.
+
+## MACS2
+Peak calling rules using macs2 require the activation of the 'macs2' environment. Please create the environment before running the snakefile `conda env create --name macs2 --file envs/macs2_env.yaml`. The enviromment is activated within the rules.
+
 ## Dry run
 Use the command `snakemake -np` to perform a dry run that prints out the rules and commands.
 
 ## Real run
-Simply type `Snakemake` and provide the number of cores with `--cores 10` for ten cores for instance.  
+Simply type `Snakemake --use-conda` and provide the number of cores with `--cores 10` for ten cores for instance.
 For cluster execution, please refer to the [Snakemake reference](https://snakemake.readthedocs.io/en/stable/executable.html#cluster-execution).
+Please pay attention to `--use-conda`, it is required for the installation and loading of the dependencies used by the rules of the pipeline.
 
 # Main outputs
-The main output are for now sorted bam files, qc files, rmdup.sorted.bam files. 
+The main output are for now sorted bam files, qc files, rmdup.sorted.bam files.
