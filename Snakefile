@@ -37,8 +37,9 @@ def get_samples_per_treatment(input_df="units.tsv",colsamples="sample",coltreatm
 # Samples and conditions
 ##############
 
-samples = pd.read_table(config["samples"]).set_index("sample", drop=False)
-SAMPLES = list(set(samples.index.values))
+#samples = pd.read_table(config["samples"]).set_index("sample", drop=False)
+#SAMPLES = list(set(samples.index.values))
+SAMPLES = units.index.get_level_values('sample').unique().tolist()
 
 units = pd.read_table(config["units"], dtype=str).set_index(["sample", "unit"], drop=False)
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
