@@ -44,8 +44,8 @@ units = pd.read_table(config["units"], dtype=str).set_index(["sample", "unit"], 
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
 UNITS = units.index.get_level_values('unit').unique().tolist()
 
-CASES = get_samples_per_treatment(treatment="control")
-CONTROLS = get_samples_per_treatment(treatment="treatment")
+CASES = get_samples_per_treatment(treatment="treatment")
+CONTROLS = get_samples_per_treatment(treatment="control")
 
 ##############
 # Wildcards
