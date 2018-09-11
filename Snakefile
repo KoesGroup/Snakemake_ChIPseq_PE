@@ -39,10 +39,10 @@ def get_samples_per_treatment(input_df="units.tsv",colsamples="sample",coltreatm
 
 #samples = pd.read_table(config["samples"]).set_index("sample", drop=False)
 #SAMPLES = list(set(samples.index.values))
-SAMPLES = units.index.get_level_values('sample').unique().tolist()
 
 units = pd.read_table(config["units"], dtype=str).set_index(["sample", "unit"], drop=False)
 units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
+SAMPLES = units.index.get_level_values('sample').unique().tolist()
 UNITS = units.index.get_level_values('unit').unique().tolist()
 
 CASES = get_samples_per_treatment(treatment="treatment")
@@ -67,7 +67,7 @@ BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}_{unit}.sorted.rmdup.b
 BEDGRAPH        =     expand(RESULT_DIR + "bedgraph/{sample}_{unit}.sorted.rmdup.bedgraph", sample=SAMPLES,unit=UNITS)
 BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}_{unit}.bw", sample=SAMPLES,unit=UNITS)
 BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}_{unit}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS,unit=UNITS) #add zip function in the expand to compare respective treatment and control
-BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
+BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.narrowPeak", treatment = CASES, control = CONTROLS,unit=UNITS)
 BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_{unit}_peaks.broadPeak", zip, treatment = CASES, control = CONTROLS,unit=UNITS)
 
 ###############
