@@ -14,7 +14,7 @@ Snakemake pipeline made for reproducible analysis of paired-end Illumina ChIP-se
 
 - **Snakefile** containing the targeted output and the rules to generate them from the input files.
 
-- **config/** , folder containing the configuration files making the Snakefile adaptable to any input files, genome and parameter for the rules.
+- **config/** , folder containing the configuration files making the Snakefile adaptable to any input files, genome and parameter for the rules. Adapt the config file and its reference in the Snakefile.
 
 - **Fastq/**, folder containing subsetted paired-end fastq files used to test locally the pipeline. Generated using [Seqtk](https://github.com/lh3/seqtk): `seqtk sample -s100 read1.fq 5000 > sub1.fqseqtk sample -s100 read2.fq 5000 > sub2.fq`. RAW fastq or fastq.gz files should be placed here before running the pipeline.
 
