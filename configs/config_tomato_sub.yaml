@@ -60,8 +60,9 @@ bowtie2:
 
 bamCoverage:
   params:
-    EFFECTIVEGENOMESIZE: '820000000' #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf
-                                    #option is --effectiveGenomeSize
+    EFFECTIVEGENOMESIZE: '820000000' #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf #option is --effectiveGenomeSize
+    EXTENDREADS: '200'              # extend each reads with a 200bp to match the average fragment size of the ChIP experiment
+
 
 # macs2 Parameters:
           # for information over macs2, refer to https://github.com/taoliu/MACS

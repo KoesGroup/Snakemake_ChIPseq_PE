@@ -13,12 +13,12 @@ from snakemake.utils import validate, min_version
 
 configfile: "configs/config_tomato_sub.yaml"
 
-WORKING_DIR = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
-RESULT_DIR = config["result_dir"]      # what you want to keep
+WORKING_DIR         = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
+RESULT_DIR          = config["result_dir"]      # what you want to keep
 
-GENOME_FASTA_URL = config["refs"]["genome_url"]
-GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
-TOTALCORES = 16                             #check this via 'grep -c processor /proc/cpuinfo'
+GENOME_FASTA_URL    = config["refs"]["genome_url"]
+GENOME_FASTA_FILE   = os.path.basename(config["refs"]["genome_url"])
+TOTALCORES          = 16                             #check this via 'grep -c processor /proc/cpuinfo'
 
 ###############
 # Helper Functions
@@ -37,13 +37,9 @@ def get_samples_per_treatment(input_df="units.tsv",colsamples="sample",coltreatm
 # Samples and conditions
 ##############
 
-#samples = pd.read_table(config["samples"]).set_index("sample", drop=False)
-#SAMPLES = list(set(samples.index.values))
-
 units = pd.read_table(config["units"], dtype=str).set_index(["sample"], drop=False)
-#units.index = units.index.set_levels([i.astype(str) for i in units.index.levels])  # enforce str in index
+
 SAMPLES = units.index.get_level_values('sample').unique().tolist()
-#UNITS = units.index.get_level_values('unit').unique().tolist()
 
 CASES = get_samples_per_treatment(treatment="treatment")
 CONTROLS = get_samples_per_treatment(treatment="control")
@@ -101,8 +97,8 @@ rule trimmomatic:
         reads = get_fastq,
         adapters = config["adapters"]
     output:
-        forward_reads = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse_reads = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
+        forward_reads   = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
+        reverse_reads   = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
         forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz"),
         reverseUnpaired = temp(WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz")
     message: "trimming {wildcards.sample} reads"
@@ -136,11 +132,11 @@ rule trimmomatic:
 
 rule fastqc:
     input:
-        fwd=WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        rev=WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
+        fwd = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
+        rev = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
     output:
-        fwd=RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
-        rev=RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
+        fwd = RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
+        rev = RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
     log:
         RESULT_DIR + "logs/fastqc/{sample}.fastqc.log"
     params:
@@ -169,17 +165,17 @@ rule index:
 
 rule align:
     input:
-        forward = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
+        forward         = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
+        reverse         = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
         forwardUnpaired = WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz",
         reverseUnpaired = WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz",
-        index = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
+        index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
     output:
         temp(WORKING_DIR + "mapped/{sample}.bam")
     message: "Mapping files"
     params:
-        bowtie = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
-        index = WORKING_DIR + "genome"
+        bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
+        index           = WORKING_DIR + "genome"
     threads: 10
     conda:
         "envs/samtools_bowtie_env.yaml"
@@ -195,7 +191,7 @@ rule sort:
     input:
         WORKING_DIR + "mapped/{sample}.bam"
     output:
-        RESULT_DIR + "mapped/{sample}.sorted.bam"
+        temp(RESULT_DIR + "mapped/{sample}.sorted.bam")
     message:"sorting {wildcards.sample} bam file"
     threads: 10
     conda:
@@ -206,8 +202,8 @@ rule rmdup:
     input:
         RESULT_DIR + "mapped/{sample}.sorted.bam"
     output:
-        bam = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam",
-        bai = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai"        #bai files required for the bigwig and bamCompare rules
+        bam = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"),
+        bai = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai")        #bai files required for the bigwig and bamCompare rules
     message: "Removing duplicate from file {wildcards.sample}"
     log:
         RESULT_DIR + "logs/samtools/{sample}.sorted.rmdup.bam.log"
@@ -215,7 +211,7 @@ rule rmdup:
         "envs/samtools.yaml"
     shell:
         """
-        samtools rmdup {input} {output.bam}
+        samtools rmdup {input} {output.bam} 2>{log}
         samtools index {output.bam}
         """
         #samtools manual says "This command is obsolete. Use markdup instead
@@ -246,16 +242,17 @@ rule bigwig:
     log:
         RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
     params:
-        EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]) #take argument separated as a list separated with a space
+        EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]), #take argument separated as a list separated with a space
+        EXTENDREADS         = str(config["bamCoverage"]["params"]["EXTENDREADS"])
     conda:
         "envs/deeptools.yaml"
     shell:
-        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} 2>{log}"
+        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} 2>{log}"
 
 rule bamcompare:
     input:
-        treatment = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",              #input requires an indexed bam file
-        control = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"                   #input requires an indexed bam file
+        treatment   = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",              #input requires an indexed bam file
+        control     = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"                   #input requires an indexed bam file
     output:
         bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw"
     message:
@@ -265,48 +262,48 @@ rule bamcompare:
     conda:
         "envs/deeptools.yaml"
     shell:
-        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig}"
+        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig} 2>{log}"
 
 rule call_narrow_peaks:
     input:
-        treatment = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",
-        control = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"
+        treatment   = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",
+        control     = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"
     output:
-        bed = RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak"
+        RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak"
     message:
         "Calling narrowPeak"
     params:
-        name = "{treatment}_vs_{control}",        #this option will give the output name, has to be similar to the output
-        format = str(config['macs2']['format']),
-        genomesize = str(config['macs2']['genomesize']),
-        qvalue = str(config['macs2']['qvalue'])
+        name        = "{treatment}_vs_{control}",        #this option will give the output name, has to be similar to the output
+        format      = str(config['macs2']['format']),
+        genomesize  = str(config['macs2']['genomesize']),
+        qvalue      = str(config['macs2']['qvalue'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.narrowPeak.log"
     conda:
         "envs/macs2_env.yaml"
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ 2>{log}
         """
 
 rule call_broad_peaks:
     input:
-        treatment = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",
-        control = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"
+        treatment   = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",
+        control     = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"
     output:
-        bed = RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak"
+        RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak"
     message:
         "Calling broadPeak"
     params:
-        name = "{treatment}_vs_{control}",
-        format = str(config['macs2']['format']),
-        genomesize = str(config['macs2']['genomesize']),
-        qvalue = str(config['macs2']['qvalue'])
+        name        = "{treatment}_vs_{control}",
+        format      = str(config['macs2']['format']),
+        genomesize  = str(config['macs2']['genomesize']),
+        qvalue      = str(config['macs2']['qvalue'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.broadPeak.log"
     conda:
         "envs/macs2_env.yaml"
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ 2>{log}
         """
