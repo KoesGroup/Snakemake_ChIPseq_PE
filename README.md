@@ -20,8 +20,6 @@ Snakemake pipeline made for reproducible analysis of paired-end Illumina ChIP-se
 
 - **envs/**, folder containing the environment needed for the Snakefile to run. To use Snakemake, it is required to create and activate an environment containing snakemake (here : envs/global_env.yaml )
 
-- **sample.tsv**, is a tab separated value files containing information about the experiment name and the condition of the experiment (control or treatment).
-
 - **units.tsv**, is a tab separated value files containing information about the experiment name, the condition of the experiment (control or treatment) and the path to the fastq files relative to the **Snakefile**. **Change this file according to your samples.**
 
 
@@ -52,6 +50,7 @@ Use the command `snakemake -np` to perform a dry run that prints out the rules a
 Simply type `Snakemake --use-conda` and provide the number of cores with `--cores 10` for ten cores for instance.
 For cluster execution, please refer to the [Snakemake reference](https://snakemake.readthedocs.io/en/stable/executable.html#cluster-execution).
 Please pay attention to `--use-conda`, it is required for the installation and loading of the dependencies used by the rules of the pipeline.
+To run the pipeline, from the folder containing the Snakefile run the
 
 # Main outputs
-The main output are for now sorted fastqc, bed and bigwig files.
+The main output are for now  **fastqc**, **bed** and **bigwig files**. Optionals outputs of the pipelines are **bamCompare**, **bedgraph** and **bed files for broad peaks calling**.
