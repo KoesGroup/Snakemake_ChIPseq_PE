@@ -41,7 +41,7 @@ The Snakemake pipeline/workflow management system reads a master file (often cal
 It has many rich features. Read more [here](https://snakemake.readthedocs.io/en/stable/).
 
 ## Samples
-Samples are listed in the `units.tsv` file and will be used by the Snakefile automatically. Change the name, the conditions accordingly.
+Samples are listed in the `units.tsv` file and will be used by the Snakefile automatically. Change in the 'units.tsv', the columns 'fq1', 'fq2' and 'conditions' according to your needs. 'fq1' and 'fq2' requires the path to the samples names relative to the Snakefile.
 
 ## Dry run
 Use the command `snakemake -np` to perform a dry run that prints out the rules and commands.
