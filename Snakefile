@@ -74,9 +74,9 @@ rule all:
         BAM_INDEX,
         BAM_RMDUP,
         FASTQC_REPORTS,
-        BEDGRAPH,
+        #BEDGRAPH,
         BIGWIG,
-        BAM_COMPARE,
+        #BAM_COMPARE,
         BED_NARROW,
         #BED_BROAD
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
