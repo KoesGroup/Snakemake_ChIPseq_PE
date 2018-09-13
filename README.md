@@ -54,3 +54,6 @@ To run the pipeline, from the folder containing the Snakefile run the
 
 # Main outputs
 The main output are for now  **fastqc**, **bed** and **bigwig files**. Optionals outputs of the pipelines are **bamCompare**, **bedgraph** and **bed files for broad peaks calling**.
+
+## DAG of the pipeline
+![](dag.png)
