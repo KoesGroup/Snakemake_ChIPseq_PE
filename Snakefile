@@ -104,6 +104,8 @@ rule trimmomatic:
     message: "trimming {wildcards.sample} reads"
     log:
         RESULT_DIR + "logs/trimmomatic/{sample}.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.trimmomatic.benchmark.txt"
     params :
         seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
         palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
@@ -158,6 +160,8 @@ rule index:
     message:"indexing genome"
     params:
         WORKING_DIR + "genome"
+    benchmark:
+        RESULT_DIR + "benchmarks/genome.index.benchmark.txt"
     threads: 10
     conda:
         "envs/samtools_bowtie_env.yaml"
@@ -177,6 +181,8 @@ rule align:
         bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
         index           = WORKING_DIR + "genome"
     threads: 10
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.align.benchmark.txt"
     conda:
         "envs/samtools_bowtie_env.yaml"
     shell:
@@ -193,6 +199,8 @@ rule sort:
     output:
         temp(RESULT_DIR + "mapped/{sample}.sorted.bam")
     message:"sorting {wildcards.sample} bam file"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.sort.benchmark.txt"
     threads: 10
     conda:
         "envs/samtools.yaml"
@@ -207,6 +215,8 @@ rule rmdup:
     message: "Removing duplicate from file {wildcards.sample}"
     log:
         RESULT_DIR + "logs/samtools/{sample}.sorted.rmdup.bam.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.rmdup.benchmark.txt"
     conda:
         "envs/samtools.yaml"
     shell:
@@ -227,6 +237,8 @@ rule bedgraph:
         "Creation of {wildcards.sample} bedgraph file"
     log:
         RESULT_DIR + "logs/deeptools/{sample}.sorted.rmdup.bedgraph.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
     conda:
         "envs/deeptools.yaml"
     shell:
@@ -241,6 +253,8 @@ rule bigwig:
         "Converting {wildcards.sample} bam into bigwig file"
     log:
         RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
     params:
         EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]), #take argument separated as a list separated with a space
         EXTENDREADS         = str(config["bamCoverage"]["params"]["EXTENDREADS"])
@@ -259,6 +273,8 @@ rule bamcompare:
         "Running bamCompare"
     log:
         RESULT_DIR + "logs/deeptools/log2_{treatment}_{control}.bamcompare.bw.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{treatment}_{control}.bamcompare.benchmark.txt"
     conda:
         "envs/deeptools.yaml"
     shell:
@@ -279,6 +295,8 @@ rule call_narrow_peaks:
         qvalue      = str(config['macs2']['qvalue'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.narrowPeak.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peaknarrow.benchmark.txt"
     conda:
         "envs/macs2_env.yaml"
     shell:
@@ -301,6 +319,8 @@ rule call_broad_peaks:
         qvalue      = str(config['macs2']['qvalue'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.broadPeak.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peakbroad.benchmark.txt"
     conda:
         "envs/macs2_env.yaml"
     shell:
