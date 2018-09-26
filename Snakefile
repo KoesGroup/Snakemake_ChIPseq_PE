@@ -172,7 +172,7 @@ rule align:
         index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
     output:
         temp(WORKING_DIR + "mapped/{sample}.bam")
-    message: "Mapping files"
+    message: "Mapping files {wildcards.sample}"
     params:
         bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
         index           = WORKING_DIR + "genome"
@@ -194,9 +194,11 @@ rule sort:
         temp(RESULT_DIR + "mapped/{sample}.sorted.bam")
     message:"sorting {wildcards.sample} bam file"
     threads: 10
+    log:
+        RESULT_DIR + "logs/samtools/{sample}.sort.log"
     conda:
         "envs/samtools.yaml"
-    shell:"samtools sort -@ {threads} -o {output} {input}"
+    shell:"samtools sort -@ {threads} -o {output} {input} &>{log}"
 
 rule rmdup:
     input:
@@ -211,7 +213,7 @@ rule rmdup:
         "envs/samtools.yaml"
     shell:
         """
-        samtools rmdup {input} {output.bam} 2>{log}
+        samtools rmdup {input} {output.bam} &>{log}
         samtools index {output.bam}
         """
         #samtools manual says "This command is obsolete. Use markdup instead
@@ -247,7 +249,7 @@ rule bigwig:
     conda:
         "envs/deeptools.yaml"
     shell:
-        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} 2>{log}"
+        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} &>{log}"
 
 rule bamcompare:
     input:
@@ -256,13 +258,13 @@ rule bamcompare:
     output:
         bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw"
     message:
-        "Running bamCompare"
+        "Running bamCompare for {wildcards.treatment} and {wildcards.control}"
     log:
         RESULT_DIR + "logs/deeptools/log2_{treatment}_{control}.bamcompare.bw.log"
     conda:
         "envs/deeptools.yaml"
     shell:
-        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig} 2>{log}"
+        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig} &>{log}"
 
 rule call_narrow_peaks:
     input:
@@ -271,7 +273,7 @@ rule call_narrow_peaks:
     output:
         RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak"
     message:
-        "Calling narrowPeak"
+        "Calling narrowPeak for {wildcards.treatment} and {wildcards.control}"
     params:
         name        = "{treatment}_vs_{control}",        #this option will give the output name, has to be similar to the output
         format      = str(config['macs2']['format']),
@@ -283,7 +285,7 @@ rule call_narrow_peaks:
         "envs/macs2_env.yaml"
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ 2>{log}
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
         """
 
 rule call_broad_peaks:
@@ -293,7 +295,7 @@ rule call_broad_peaks:
     output:
         RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak"
     message:
-        "Calling broadPeak"
+        "Calling broadPeak for {wildcards.treatment} and {wildcards.control}"
     params:
         name        = "{treatment}_vs_{control}",
         format      = str(config['macs2']['format']),
@@ -305,5 +307,5 @@ rule call_broad_peaks:
         "envs/macs2_env.yaml"
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ 2>{log}
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
         """
