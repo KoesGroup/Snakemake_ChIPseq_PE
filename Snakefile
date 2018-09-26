@@ -74,14 +74,14 @@ rule all:
         BAM_INDEX,
         BAM_RMDUP,
         FASTQC_REPORTS,
-        #BEDGRAPH,
+        BEDGRAPH,
         BIGWIG,
-        #BAM_COMPARE,
+        BAM_COMPARE,
         BED_NARROW,
         #BED_BROAD
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
-    shell:"#rm -rf {WORKING_DIR}"
+    shell:"rm -rf {WORKING_DIR}"
 
 ###############
 # Rules
@@ -130,7 +130,7 @@ rule trimmomatic:
         "LEADING:{params.LeadMinTrimQual} "
         "TRAILING:{params.TrailMinTrimQual} "
         "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
-        "MINLEN:{params.minReadLen} 2>{log}"
+        "MINLEN:{params.minReadLen} &>{log}"
 
 rule fastqc:
     input:
@@ -148,7 +148,7 @@ rule fastqc:
     conda:
         "envs/fastqc_env.yaml"
     shell:
-        "fastqc --outdir={params} {input.fwd} {input.rev} 2>{log}"
+        "fastqc --outdir={params} {input.fwd} {input.rev} &>{log}"
 
 rule index:
     input:
