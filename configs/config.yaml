@@ -12,20 +12,20 @@ cores: 16  #check this via 'grep -c processor /proc/cpuinfo' and use htop to see
 
 
 # adapters for trimmomatic
-adapters: "adapters.fasta"
+
 
 # trimmomatic parameters
 trimmomatic:
-  adapters: "adapters.fasta"
-  seedMisMatches: '2'
-  palindromeClipTreshold: '30'
-  simpleClipThreshold: '10'
-  LeadMinTrimQual: '3'
-  TrailMinTrimQual: '3'
-  windowSize: '4'
-  avgMinQual: '15'
-  minReadLength: '40'
-  phred: "-phred33" # phred: for illumina >1.8 the quality score are encoded by phred33
+  adapters:                'adapters.fasta'
+  seedMisMatches:          '2'
+  palindromeClipTreshold:  '30'
+  simpleClipThreshold:     '10'
+  LeadMinTrimQual:         '3'
+  TrailMinTrimQual:        '3'
+  windowSize:              '4'
+  avgMinQual:              '15'
+  minReadLength:           '40'
+  phred:                   '-phred33' # phred: for illumina >1.8 the quality score are encoded by phred33
 
 ## Genomic references, annotations and aligner indexes
 refs:
