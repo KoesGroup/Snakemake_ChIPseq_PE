@@ -18,7 +18,7 @@ RESULT_DIR          = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL    = config["refs"]["genome_url"]
 GENOME_FASTA_FILE   = os.path.basename(config["refs"]["genome_url"])
-TOTALCORES          = 16                             #check this via 'grep -c processor /proc/cpuinfo'
+TOTALCORES          = config["cores"] 
 
 ###############
 # Helper Functions
@@ -60,7 +60,6 @@ wildcard_constraints:
 FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"})
 BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=SAMPLES)
 BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=SAMPLES)
-BEDGRAPH        =     expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=SAMPLES)
 BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
 BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS) #add zip function in the expand to compare respective treatment and control
 BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS)
@@ -74,7 +73,6 @@ rule all:
         BAM_INDEX,
         BAM_RMDUP,
         FASTQC_REPORTS,
-        #BEDGRAPH,
         BIGWIG,
         #BAM_COMPARE,
         BED_NARROW,

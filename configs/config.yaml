@@ -1,12 +1,15 @@
 ---
+# samples
 samples: sample.tsv
-
 units: units.tsv
 
 # files and directories
-
 working_dir: "temp/"
 result_dir: "results/"
+
+# resources
+cores: 16  #check this via 'grep -c processor /proc/cpuinfo' and use htop to see the number of CPUs in use
+
 
 # adapters for trimmomatic
 adapters: "adapters.fasta"
