@@ -88,12 +88,14 @@ rule get_genome_fasta:
     output:
         WORKING_DIR + "genome.fasta"
     message:"downloading {GENOME_FASTA_FILE} genomic fasta file"
+    conda: 
+        "envs/wget.yaml"
     shell: "wget -O {output} {GENOME_FASTA_URL}"
 
 rule trimmomatic:
     input:
         reads = get_fastq,
-        adapters = config["adapters"]
+        adapters = config["trimmomatic"]["adapters"]
     output:
         forward_reads   = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
         reverse_reads   = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
@@ -114,7 +116,7 @@ rule trimmomatic:
         phred = 		            str(config["trimmomatic"]["phred"])
     threads: 10
     conda:
-        "envs/trimmomatic_env.yaml"
+        "envs/trimmomatic.yaml"
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
         "{input.reads} "
@@ -142,7 +144,7 @@ rule fastqc:
     message:
         "---Quality check of trimmed {wildcards.sample} sample with FASTQC"
     conda:
-        "envs/fastqc_env.yaml"
+        "envs/fastqc.yaml"
     shell:
         "fastqc --outdir={params} {input.fwd} {input.rev} 2>{log}"
 
@@ -158,7 +160,7 @@ rule index:
         WORKING_DIR + "genome"
     threads: 10
     conda:
-        "envs/samtools_bowtie_env.yaml"
+        "envs/bowtie2.yaml"
     shell:"bowtie2-build --threads {threads} {input} {params}"
 
 rule align:
@@ -176,7 +178,7 @@ rule align:
         index           = WORKING_DIR + "genome"
     threads: 10
     conda:
-        "envs/samtools_bowtie_env.yaml"
+        "envs/samtools_bowtie.yaml"
     shell:
         "bowtie2 {params.bowtie} "
         "--threads {threads} "
@@ -202,7 +204,7 @@ rule rmdup:
     output:
         bam = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"),
         bai = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai")        #bai files required for the bigwig and bamCompare rules
-    message: "Removing duplicate from file {wildcards.sample}"
+    message: "Removing duplicate from file {wildcards.sample} using samtools rmdup"
     log:
         RESULT_DIR + "logs/samtools/{sample}.sorted.rmdup.bam.log"
     conda:
@@ -212,7 +214,6 @@ rule rmdup:
         samtools rmdup {input} {output.bam} 2>{log}
         samtools index {output.bam}
         """
-        #samtools manual says "This command is obsolete. Use markdup instead
 
 rule bedgraph:
     input:
@@ -226,7 +227,7 @@ rule bedgraph:
     log:
         RESULT_DIR + "logs/deeptools/{sample}.sorted.rmdup.bedgraph.log"
     conda:
-        "envs/deeptools.yaml"
+        "envs/bedtools.yaml"
     shell:
         "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
 
@@ -243,7 +244,7 @@ rule bigwig:
         EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]), #take argument separated as a list separated with a space
         EXTENDREADS         = str(config["bamCoverage"]["params"]["EXTENDREADS"])
     conda:
-        "envs/deeptools.yaml"
+        "envs/bedtools.yaml"
     shell:
         "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} 2>{log}"
 
@@ -269,7 +270,7 @@ rule call_narrow_peaks:
     output:
         RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak"
     message:
-        "Calling narrowPeak"
+        "Calling narrow peaks with macs2"
     params:
         name        = "{treatment}_vs_{control}",        #this option will give the output name, has to be similar to the output
         format      = str(config['macs2']['format']),
@@ -278,7 +279,7 @@ rule call_narrow_peaks:
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.narrowPeak.log"
     conda:
-        "envs/macs2_env.yaml"
+        "envs/macs2.yaml"
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ 2>{log}
@@ -291,7 +292,7 @@ rule call_broad_peaks:
     output:
         RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak"
     message:
-        "Calling broadPeak"
+        "Calling broad peaks with macs2"
     params:
         name        = "{treatment}_vs_{control}",
         format      = str(config['macs2']['format']),
@@ -300,7 +301,7 @@ rule call_broad_peaks:
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.broadPeak.log"
     conda:
-        "envs/macs2_env.yaml"
+        "envs/macs2.yaml"
     shell:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ 2>{log}
