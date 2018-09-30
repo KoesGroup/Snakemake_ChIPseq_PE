@@ -70,13 +70,10 @@ BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.br
 ################
 rule all:
     input:
-        BAM_INDEX,
-        BAM_RMDUP,
         FASTQC_REPORTS,
         BIGWIG,
-        #BAM_COMPARE,
         BED_NARROW,
-        #BED_BROAD
+        BED_BROAD
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"rm -rf {WORKING_DIR}"
