@@ -241,8 +241,9 @@ rule bigwig:
         EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]), #take argument separated as a list separated with a space
         EXTENDREADS         = str(config["bamCoverage"]["params"]["EXTENDREADS"])
     conda:
-        "envs/bedtools.yaml"
+        "envs/deeptools.yaml"
     shell:
+        "samtools index {input};"
         "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} 2>{log}"
 
 rule bamcompare:
