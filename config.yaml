@@ -4,7 +4,7 @@ samples: sample.tsv
 units: units.tsv
 
 # files and directories
-working_dir: "temp/"
+temp_dir: "temp/"         # this directory will store intermediate files and everything that can be deleted upon execution of the pipeline
 result_dir: "results/"
 
 # resources

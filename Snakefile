@@ -13,7 +13,7 @@ from snakemake.utils import validate, min_version
 
 configfile: "config.yaml"
 
-WORKING_DIR         = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
+WORKING_DIR         = config["temp_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
 RESULT_DIR          = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL    = config["refs"]["genome_url"]
@@ -253,7 +253,7 @@ rule bamcompare:
     output:
         bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw"
     message:
-        "Running bamCompare"
+        "Running bamCompare on {input.control} and {input.treatment} bam files"
     log:
         RESULT_DIR + "logs/deeptools/log2_{treatment}_{control}.bamcompare.bw.log"
     conda:
