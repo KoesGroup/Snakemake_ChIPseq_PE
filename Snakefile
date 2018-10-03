@@ -33,6 +33,10 @@ def get_samples_per_treatment(input_df="units.tsv",colsamples="sample",coltreatm
     filtered_samples = df[colsamples].tolist()
     return filtered_samples
 
+def is_single_end(sample):
+    """This function detect missing value in the column 2 of the units.tsv"""
+    return pd.isnull(units.loc[(sample), "fq2"])
+
 ##############
 # Samples and conditions
 ##############
@@ -43,6 +47,11 @@ SAMPLES = units.index.get_level_values('sample').unique().tolist()
 
 CASES = get_samples_per_treatment(treatment="treatment")
 CONTROLS = get_samples_per_treatment(treatment="control")
+
+GROUPS = {
+    "group1" : ["ChIP1", "ChIP2", "ChIP3"],
+    "group2" : ["ChIP4", "ChIP5", "ChIP6"]
+}                                           #I used this dictionnary to define the group of sample used in the multiBamSummary, might be improved a lot
 
 ##############
 # Wildcards
@@ -65,7 +74,8 @@ BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
 BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS) #add zip function in the expand to compare respective treatment and control
 BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS)
 BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak", zip, treatment = CASES, control = CONTROLS)
-
+MULTIBAMSUMMARY =     expand(RESULT_DIR + "multiBamSummary/{group}.npz", group = list(GROUPS.keys()))
+PLOTCORRELATION =     expand(RESULT_DIR + "plotCorrelation/{sample}.png", sample = list(GROUPS.keys()))
 ###############
 # Final output
 ################
@@ -79,9 +89,11 @@ rule all:
         BAM_COMPARE,
         BED_NARROW,
         #BED_BROAD
+        MULTIBAMSUMMARY,
+        PLOTCORRELATION
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
-    shell:"rm -rf {WORKING_DIR}"
+    shell:"#rm -rf {WORKING_DIR}"
 
 ###############
 # Rules
@@ -212,8 +224,8 @@ rule rmdup:
     input:
         RESULT_DIR + "mapped/{sample}.sorted.bam"
     output:
-        bam = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"),
-        bai = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai")        #bai files required for the bigwig and bamCompare rules
+        bam = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam",
+        bai = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai"        #bai files required for the bigwig and bamCompare rules
     message: "Removing duplicate from file {wildcards.sample}"
     log:
         RESULT_DIR + "logs/samtools/{sample}.sorted.rmdup.bam.log"
@@ -329,3 +341,54 @@ rule call_broad_peaks:
         """
         macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
         """
+
+
+rule multiBamSummary:
+    input:
+        lambda wildcards: expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample = GROUPS[wildcards.group])
+    output:
+        RESULT_DIR + "multiBamSummary/{group}.npz"
+    message:
+        "Computing the read coverage for {wildcards.group} "
+    threads: 10
+    params:
+        binSize     = str(config['multiBamSummary']['binSize'])
+    log:
+        RESULT_DIR + "logs/deeptools/multibamsummary/{group}.log"
+
+    shell:
+        "multiBamSummary bins \
+        --bamfiles {input} \
+        --numberOfProcessors {threads}\
+        --binSize {params.binSize} \
+        --centerReads \
+        --extendReads \
+        -o {output} \
+        2> {log}"
+
+
+rule plotCorrelation:
+    input:
+        RESULT_DIR + "multiBamSummary/{sample}.npz"
+    output:
+        RESULT_DIR + "plotCorrelation/{sample}.png"
+    log:
+        RESULT_DIR + "logs/deeptools/plotCorrelation/{sample}.log"
+    params:
+        corMethod  = str(config['plotCorrelation']['corMethod']),
+        whatToPlot = str(config['plotCorrelation']['whatToPlot']),
+        color      = str(config['plotCorrelation']['color'])
+    shell:
+        "plotCorrelation \
+                    --corData {input} \
+                    --corMethod {params.corMethod} \
+                    --whatToPlot {params.whatToPlot} \
+                    --skipZeros \
+                    --colorMap {params.color} \
+                    --plotFile {output} \
+                    --plotNumbers \
+                    2> {log}"
+
+
+
+#--plotTitle 'Pearson Correlation of {params.title} coverage' \
