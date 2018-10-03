@@ -74,3 +74,13 @@ macs2:
   qvalue: "0.05"                  #default is 0.05
   outdir : "results/bed/"
   bandwidth: "--bw 350"           #the bandwidth is used to scan the genome for model building. To be set to the expected sonication fragment size.
+
+multiBamSummary:
+  binSize: "1000"
+
+
+
+plotCorrelation:
+  corMethod : "pearson"            # Can be replaced by spearman
+  whatToPlot: "heatmap"            # Can be replaced by scatterplot
+  color     : "PuBuGn"             # see [here](https://matplotlib.org/examples/color/colormaps_reference.html) for alternative colors
