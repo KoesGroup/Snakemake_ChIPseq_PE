@@ -18,6 +18,9 @@ RESULT_DIR          = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL    = config["refs"]["genome_url"]
 GENOME_FASTA_FILE   = os.path.basename(config["refs"]["genome_url"])
+GFF_URL             = config["refs"]["gff_url"]
+GFF_FILE            = os.path.basename(config["refs"]["gff_url"])
+
 TOTALCORES          = 16                             #check this via 'grep -c processor /proc/cpuinfo'
 
 ###############
@@ -76,6 +79,8 @@ BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.na
 BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak", zip, treatment = CASES, control = CONTROLS)
 MULTIBAMSUMMARY =     expand(RESULT_DIR + "multiBamSummary/{group}.npz", group = list(GROUPS.keys()))
 PLOTCORRELATION =     expand(RESULT_DIR + "plotCorrelation/{sample}.png", sample = list(GROUPS.keys()))
+COMPUTEMATRIX   =     expand(RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz", treatment = CASES, control = CONTROLS)
+
 ###############
 # Final output
 ################
@@ -90,7 +95,8 @@ rule all:
         BED_NARROW,
         #BED_BROAD
         MULTIBAMSUMMARY,
-        PLOTCORRELATION
+        PLOTCORRELATION,
+        COMPUTEMATRIX
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -373,7 +379,7 @@ rule plotCorrelation:
     output:
         RESULT_DIR + "plotCorrelation/{sample}.png"
     log:
-        RESULT_DIR + "logs/deeptools/plotCorrelation/{sample}.log"
+        RESULT_DIR + "logs/deeptools/plotcorrelation/{sample}.log"
     params:
         corMethod  = str(config['plotCorrelation']['corMethod']),
         whatToPlot = str(config['plotCorrelation']['whatToPlot']),
@@ -389,6 +395,51 @@ rule plotCorrelation:
                     --plotNumbers \
                     2> {log}"
 
-
-
 #--plotTitle 'Pearson Correlation of {params.title} coverage' \
+
+rule get_gff:
+    output:
+        WORKING_DIR + "gene_model.gff"
+    message:"downloading {GFF_FILE} genomic fasta file"
+    shell: "wget -O {output} {GFF_URL}"
+
+rule computeMatrix:
+    input:
+        bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw",
+        bed    = WORKING_DIR + "gene_model.gff"
+    output:
+        RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
+    threads: 10
+    params:
+        binSize = str(config['computeMatrix']['binSize'])
+    log:
+        RESULT_DIR + "logs/deeptools/computematrix/{treatment}_{control}.log"
+    shell:
+        "computeMatrix \
+        reference-point \
+        --referencePoint TSS \
+        -S {input.bigwig} \
+        -R {input.bed} \
+        --afterRegionStartLength 3000 \
+        --beforeRegionStartLength 3000 \
+        --numberOfProcessors {threads} \
+        --binSize {params.binSize} \
+        -o {output} \
+        2> {log}"
+
+rule plotHeatmap:
+    input:
+        RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
+    output:
+        RESULT_DIR + "heatmap/{treatment}_{control}.pdf"
+    params:
+        kmeans = str(config['plotHeatmap']['kmeans']),
+        color  = str(config['plotHeatmap']['color']),
+        plot   = str(config['plotHeatmap']['plot'])
+    shell:
+        "plotHeatmap \
+        --matrixFile {input} \
+        --outFileName {output} \
+        --kmeans {params.kmeans} \
+        --whatToShow {params.plot} \
+        --colorMap {params.color} "
