@@ -80,6 +80,7 @@ BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.br
 MULTIBAMSUMMARY =     expand(RESULT_DIR + "multiBamSummary/{group}.npz", group = list(GROUPS.keys()))
 PLOTCORRELATION =     expand(RESULT_DIR + "plotCorrelation/{sample}.png", sample = list(GROUPS.keys()))
 COMPUTEMATRIX   =     expand(RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz", treatment = CASES, control = CONTROLS)
+HEATMAP         =     expand(RESULT_DIR + "heatmap/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
 
 ###############
 # Final output
@@ -96,7 +97,8 @@ rule all:
         #BED_BROAD
         MULTIBAMSUMMARY,
         PLOTCORRELATION,
-        COMPUTEMATRIX
+        COMPUTEMATRIX,
+        HEATMAP
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -450,5 +452,4 @@ rule plotHeatmap:
         --matrixFile {input} \
         --outFileName {output} \
         --kmeans {params.kmeans} \
-        --whatToShow {params.plot} \
         --colorMap {params.color} "
