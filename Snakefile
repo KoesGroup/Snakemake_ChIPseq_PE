@@ -102,6 +102,8 @@ rule trimmomatic:
     message: "trimming {wildcards.sample} reads"
     log:
         RESULT_DIR + "logs/trimmomatic/{sample}.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.trimmomatic.benchmark.txt"
     params :
         seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
         palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
@@ -126,7 +128,7 @@ rule trimmomatic:
         "LEADING:{params.LeadMinTrimQual} "
         "TRAILING:{params.TrailMinTrimQual} "
         "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
-        "MINLEN:{params.minReadLen} 2>{log}"
+        "MINLEN:{params.minReadLen} &>{log}"
 
 rule fastqc:
     input:
@@ -144,7 +146,7 @@ rule fastqc:
     conda:
         "envs/fastqc.yaml"
     shell:
-        "fastqc --outdir={params} {input.fwd} {input.rev} 2>{log}"
+        "fastqc --outdir={params} {input.fwd} {input.rev} &>{log}"
 
 rule index:
     input:
@@ -156,6 +158,8 @@ rule index:
     message:"indexing genome"
     params:
         WORKING_DIR + "genome"
+    benchmark:
+        RESULT_DIR + "benchmarks/genome.index.benchmark.txt"
     threads: 10
     conda:
         "envs/bowtie2.yaml"
@@ -170,11 +174,13 @@ rule align:
         index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
     output:
         temp(WORKING_DIR + "mapped/{sample}.bam")
-    message: "Mapping files"
+    message: "Mapping files {wildcards.sample}"
     params:
         bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
         index           = WORKING_DIR + "genome"
     threads: 10
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.align.benchmark.txt"
     conda:
         "envs/samtools_bowtie.yaml"
     shell:
@@ -191,10 +197,14 @@ rule sort:
     output:
         temp(RESULT_DIR + "mapped/{sample}.sorted.bam")
     message:"sorting {wildcards.sample} bam file"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.sort.benchmark.txt"
     threads: 10
+    log:
+        RESULT_DIR + "logs/samtools/{sample}.sort.log"
     conda:
         "envs/samtools.yaml"
-    shell:"samtools sort -@ {threads} -o {output} {input}"
+    shell:"samtools sort -@ {threads} -o {output} {input} &>{log}"
 
 rule rmdup:
     input:
@@ -205,11 +215,13 @@ rule rmdup:
     message: "Removing duplicate from file {wildcards.sample} using samtools rmdup"
     log:
         RESULT_DIR + "logs/samtools/{sample}.sorted.rmdup.bam.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.rmdup.benchmark.txt"
     conda:
         "envs/samtools.yaml"
     shell:
         """
-        samtools rmdup {input} {output.bam} 2>{log}
+        samtools rmdup {input} {output.bam} &>{log}
         samtools index {output.bam}
         """
 
@@ -224,6 +236,8 @@ rule bedgraph:
         "Creation of {wildcards.sample} bedgraph file"
     log:
         RESULT_DIR + "logs/deeptools/{sample}.sorted.rmdup.bedgraph.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
     conda:
         "envs/bedtools.yaml"
     shell:
@@ -238,6 +252,8 @@ rule bigwig:
         "Converting {wildcards.sample} bam into bigwig file"
     log:
         RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
     params:
         EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]), #take argument separated as a list separated with a space
         EXTENDREADS         = str(config["bamCoverage"]["params"]["EXTENDREADS"])
@@ -247,6 +263,7 @@ rule bigwig:
         "samtools index {input};"
         "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} 2>{log}"
 
+
 rule bamcompare:
     input:
         treatment   = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",              #input requires an indexed bam file
@@ -254,13 +271,15 @@ rule bamcompare:
     output:
         bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw"
     message:
-        "Running bamCompare on {input.control} and {input.treatment} bam files"
+        "Running bamCompare for {wildcards.treatment} and {wildcards.control}"
     log:
         RESULT_DIR + "logs/deeptools/log2_{treatment}_{control}.bamcompare.bw.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{treatment}_{control}.bamcompare.benchmark.txt"
     conda:
         "envs/deeptools.yaml"
     shell:
-        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig} 2>{log}"
+        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig} &>{log}"
 
 rule call_narrow_peaks:
     input:
@@ -269,7 +288,7 @@ rule call_narrow_peaks:
     output:
         RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak"
     message:
-        "Calling narrow peaks with macs2"
+        "Calling narrowPeak for {wildcards.treatment} and {wildcards.control}"
     params:
         name        = "{treatment}_vs_{control}",        #this option will give the output name, has to be similar to the output
         format      = str(config['macs2']['format']),
@@ -277,11 +296,13 @@ rule call_narrow_peaks:
         qvalue      = str(config['macs2']['qvalue'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.narrowPeak.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peaknarrow.benchmark.txt"
     conda:
         "envs/macs2.yaml"
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ 2>{log}
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
         """
 
 rule call_broad_peaks:
@@ -291,7 +312,7 @@ rule call_broad_peaks:
     output:
         RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak"
     message:
-        "Calling broad peaks with macs2"
+        "Calling broadPeak for {wildcards.treatment} and {wildcards.control}"
     params:
         name        = "{treatment}_vs_{control}",
         format      = str(config['macs2']['format']),
@@ -299,9 +320,11 @@ rule call_broad_peaks:
         qvalue      = str(config['macs2']['qvalue'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.broadPeak.log"
+    benchmark:
+        RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peakbroad.benchmark.txt"
     conda:
         "envs/macs2.yaml"
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ 2>{log}
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
         """
