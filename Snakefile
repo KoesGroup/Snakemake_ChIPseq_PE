@@ -1,4 +1,5 @@
 # Snakemake file for ChIP-Seq PE analysis
+# The pipeline runs with the command "snakemake --use-conda [--core] ", within the folder containing the Snakefile, after activation of the global_env.yaml
 
 ###############
 # Libraries
