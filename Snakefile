@@ -452,4 +452,5 @@ rule plotHeatmap:
         --matrixFile {input} \
         --outFileName {output} \
         --kmeans {params.kmeans} \
-        --colorMap {params.color} "
+        --colorMap {params.color} \
+        --legendLocation best"
