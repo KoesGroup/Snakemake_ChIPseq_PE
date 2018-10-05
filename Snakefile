@@ -403,10 +403,19 @@ rule get_gff:
     message:"downloading {GFF_FILE} genomic fasta file"
     shell: "wget -O {output} {GFF_URL}"
 
+rule gff_to_gtf:
+    input:
+        WORKING_DIR + "gene_model.gff"
+    output:
+        WORKING_DIR + "gene_model.gtf"
+    shell:
+        "python scripts/gff_to_gtf.py {input} {output}"
+
+
 rule computeMatrix:
     input:
         bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw",
-        bed    = WORKING_DIR + "gene_model.gff"
+        bed    = WORKING_DIR + "gene_model.gtf"
     output:
         RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
     threads: 10
