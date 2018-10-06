@@ -1,4 +1,5 @@
 # Snakemake file for ChIP-Seq PE analysis
+# The pipeline runs with the command "snakemake --use-conda [--core] ", within the folder containing the Snakefile, after activation of the global_env.yaml
 
 ###############
 # Libraries
@@ -11,14 +12,14 @@ from snakemake.utils import validate, min_version
 # Configuration and sample sheets
 #############################################
 
-configfile: "configs/config_tomato_sub.yaml"
+configfile: "config.yaml"
 
-WORKING_DIR         = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
+WORKING_DIR         = config["temp_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
 RESULT_DIR          = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL    = config["refs"]["genome_url"]
 GENOME_FASTA_FILE   = os.path.basename(config["refs"]["genome_url"])
-TOTALCORES          = 16                             #check this via 'grep -c processor /proc/cpuinfo'
+TOTALCORES          = config["cores"] 
 
 ###############
 # Helper Functions
@@ -60,7 +61,6 @@ wildcard_constraints:
 FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"})
 BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=SAMPLES)
 BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=SAMPLES)
-BEDGRAPH        =     expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=SAMPLES)
 BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
 BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS) #add zip function in the expand to compare respective treatment and control
 BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS)
@@ -71,14 +71,10 @@ BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.br
 ################
 rule all:
     input:
-        BAM_INDEX,
-        BAM_RMDUP,
         FASTQC_REPORTS,
-        BEDGRAPH,
         BIGWIG,
-        BAM_COMPARE,
         BED_NARROW,
-        #BED_BROAD
+        BED_BROAD
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"rm -rf {WORKING_DIR}"
@@ -90,12 +86,14 @@ rule get_genome_fasta:
     output:
         WORKING_DIR + "genome.fasta"
     message:"downloading {GENOME_FASTA_FILE} genomic fasta file"
+    conda: 
+        "envs/wget.yaml"
     shell: "wget -O {output} {GENOME_FASTA_URL}"
 
 rule trimmomatic:
     input:
         reads = get_fastq,
-        adapters = config["adapters"]
+        adapters = config["trimmomatic"]["adapters"]
     output:
         forward_reads   = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
         reverse_reads   = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
@@ -118,7 +116,7 @@ rule trimmomatic:
         phred = 		            str(config["trimmomatic"]["phred"])
     threads: 10
     conda:
-        "envs/trimmomatic_env.yaml"
+        "envs/trimmomatic.yaml"
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
         "{input.reads} "
@@ -146,7 +144,7 @@ rule fastqc:
     message:
         "---Quality check of trimmed {wildcards.sample} sample with FASTQC"
     conda:
-        "envs/fastqc_env.yaml"
+        "envs/fastqc.yaml"
     shell:
         "fastqc --outdir={params} {input.fwd} {input.rev} &>{log}"
 
@@ -164,7 +162,7 @@ rule index:
         RESULT_DIR + "benchmarks/genome.index.benchmark.txt"
     threads: 10
     conda:
-        "envs/samtools_bowtie_env.yaml"
+        "envs/bowtie2.yaml"
     shell:"bowtie2-build --threads {threads} {input} {params}"
 
 rule align:
@@ -184,7 +182,7 @@ rule align:
     benchmark:
         RESULT_DIR + "benchmarks/{sample}.align.benchmark.txt"
     conda:
-        "envs/samtools_bowtie_env.yaml"
+        "envs/samtools_bowtie.yaml"
     shell:
         "bowtie2 {params.bowtie} "
         "--threads {threads} "
@@ -214,7 +212,7 @@ rule rmdup:
     output:
         bam = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"),
         bai = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai")        #bai files required for the bigwig and bamCompare rules
-    message: "Removing duplicate from file {wildcards.sample}"
+    message: "Removing duplicate from file {wildcards.sample} using samtools rmdup"
     log:
         RESULT_DIR + "logs/samtools/{sample}.sorted.rmdup.bam.log"
     benchmark:
@@ -226,7 +224,6 @@ rule rmdup:
         samtools rmdup {input} {output.bam} &>{log}
         samtools index {output.bam}
         """
-        #samtools manual says "This command is obsolete. Use markdup instead
 
 rule bedgraph:
     input:
@@ -242,7 +239,7 @@ rule bedgraph:
     benchmark:
         RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
     conda:
-        "envs/deeptools.yaml"
+        "envs/bedtools.yaml"
     shell:
         "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
 
@@ -263,7 +260,9 @@ rule bigwig:
     conda:
         "envs/deeptools.yaml"
     shell:
-        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} &>{log}"
+        "samtools index {input};"
+        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} 2>{log}"
+
 
 rule bamcompare:
     input:
@@ -294,16 +293,17 @@ rule call_narrow_peaks:
         name        = "{treatment}_vs_{control}",        #this option will give the output name, has to be similar to the output
         format      = str(config['macs2']['format']),
         genomesize  = str(config['macs2']['genomesize']),
-        qvalue      = str(config['macs2']['qvalue'])
+        qvalue      = str(config['macs2']['qvalue']),
+        outdir      = str(config['macs2']['outdir'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.narrowPeak.log"
     benchmark:
         RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peaknarrow.benchmark.txt"
     conda:
-        "envs/macs2_env.yaml"
+        "envs/macs2.yaml"
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir {params.outdir} &>{log}
         """
 
 rule call_broad_peaks:
@@ -318,14 +318,15 @@ rule call_broad_peaks:
         name        = "{treatment}_vs_{control}",
         format      = str(config['macs2']['format']),
         genomesize  = str(config['macs2']['genomesize']),
-        qvalue      = str(config['macs2']['qvalue'])
+        qvalue      = str(config['macs2']['qvalue']),
+        outdir      = str(config['macs2']['outdir'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.broadPeak.log"
     benchmark:
         RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peakbroad.benchmark.txt"
     conda:
-        "envs/macs2_env.yaml"
+        "envs/macs2.yaml"
     shell:
         """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
+        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir {params.outdir} &>{log}
         """

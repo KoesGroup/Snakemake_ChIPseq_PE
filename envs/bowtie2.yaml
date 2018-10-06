@@ -1,4 +1,4 @@
 channels:
   - bioconda
 dependencies:
-  - deeptools=3.1.2
+  - bowtie2=2.3.4
