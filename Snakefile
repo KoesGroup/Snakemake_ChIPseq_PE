@@ -266,7 +266,7 @@ rule bedgraph:
     shell:
         "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
 
-rule bigwig:
+rule bamCoverage:
     input:
         RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
     output:
@@ -278,12 +278,23 @@ rule bigwig:
     benchmark:
         RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
     params:
-        EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]), #take argument separated as a list separated with a space
-        EXTENDREADS         = str(config["bamCoverage"]["params"]["EXTENDREADS"])
+        EFFECTIVEGENOMESIZE     = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]), #take argument separated as a list separated with a space
+        EXTENDREADS             = str(config["bamCoverage"]["params"]["EXTENDREADS"]),
+        binSize                 = str(config['bamCoverage']["params"]['binSize']),
+        normalizeUsing          = str(config['bamCoverage']["params"]['normalizeUsing']),
+        ignoreForNormalization  = str(config['bamCoverage']["params"]['ignoreForNormalization']),
+        smoothLength            = str(config['bamCoverage']["params"]['smoothLength'])
     conda:
         "envs/deeptools.yaml"
     shell:
-        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} &>{log}"
+        "bamCoverage --bam {input} \
+        -o {output} \
+        --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} \
+        --extendReads {params.EXTENDREADS} \
+        --binSize {params.binSize} \
+        --smoothLength {params.smoothLength} \
+        --ignoreForNormalization {params.ignoreForNormalization} \
+        &>{log}"
 
 rule bamcompare:
     input:
@@ -299,8 +310,25 @@ rule bamcompare:
         RESULT_DIR + "benchmarks/{treatment}_{control}.bamcompare.benchmark.txt"
     conda:
         "envs/deeptools.yaml"
+    params:
+        binSize             = str(config['bamcompare']['binSize']),
+        normalizeUsing      = str(config['bamcompare']['normalizeUsing']),
+        EFFECTIVEGENOMESIZE = str(config["bamcompare"]["EFFECTIVEGENOMESIZE"]),
+        operation           = str(config['bamcompare']['operation']),
+        smoothLength        = str(config['bamcompare']['smoothLength']),
+        ignoreForNormalization = str(config['bamcompare']['ignoreForNormalization']),
+        scaleFactorsMethod  = str(config['bamcompare']['scaleFactorsMethod'])
     shell:
-        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig} &>{log}"
+        "bamCompare -b1 {input.treatment} \
+        -b2 {input.control}  \
+        --binSize {params.binSize} \
+        -o {output.bigwig} \
+        --normalizeUsing {params.normalizeUsing} \
+        --operation {params.operation} \
+        --smoothLength {params.smoothLength} \
+        --ignoreForNormalization {params.ignoreForNormalization} \
+        --scaleFactorsMethod {params.scaleFactorsMethod} \
+        &>{log}"
 
 rule call_narrow_peaks:
     input:
@@ -446,11 +474,13 @@ rule plotHeatmap:
     params:
         kmeans = str(config['plotHeatmap']['kmeans']),
         color  = str(config['plotHeatmap']['color']),
-        plot   = str(config['plotHeatmap']['plot'])
+        plot   = str(config['plotHeatmap']['plot']),
+        cluster = "{treatment}_vs_{control}.bed"
     shell:
         "plotHeatmap \
         --matrixFile {input} \
         --outFileName {output} \
         --kmeans {params.kmeans} \
         --colorMap {params.color} \
-        --legendLocation best"
+        --legendLocation best \
+        --outFileSortedRegions {params.cluster}"
