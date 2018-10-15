@@ -65,7 +65,7 @@ bamcompare:
   EFFECTIVEGENOMESIZE: '820000000'
   operation : "log2"              #others choices are ratio, subtract, add, mean, reciprocal_ratio, first, second more documentation:https://deeptools.readthedocs.io/en/develop/content/tools/bamCompare.html?highlight=bamcompare
   smoothLength: "40"
-  scaleFactorsMethod: "SES"       #others choices are readCount, None
+  scaleFactorsMethod: "None"       #others choices are readCount, SES
   ignoreForNormalization: "SL3.0ch00" #list here space-delimited chromosomes that should be ignored for normalization, sex chromosomes usually.
 
 
