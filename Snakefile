@@ -81,6 +81,7 @@ MULTIBAMSUMMARY =     expand(RESULT_DIR + "multiBamSummary/{group}.npz", group =
 PLOTCORRELATION =     expand(RESULT_DIR + "plotCorrelation/{sample}.png", sample = list(GROUPS.keys()))
 COMPUTEMATRIX   =     expand(RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz", treatment = CASES, control = CONTROLS)
 HEATMAP         =     expand(RESULT_DIR + "heatmap/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
+PLOTFINGERPRINT =     expand(RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf", zip, treatment = CASES, control = CONTROLS)
 
 ###############
 # Final output
@@ -98,7 +99,8 @@ rule all:
         MULTIBAMSUMMARY,
         PLOTCORRELATION,
         COMPUTEMATRIX,
-        HEATMAP
+        HEATMAP,
+        PLOTFINGERPRINT
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -275,8 +277,6 @@ rule bamCoverage:
         "Converting {wildcards.sample} bam into bigwig file"
     log:
         RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
     params:
         EFFECTIVEGENOMESIZE     = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]), #take argument separated as a list separated with a space
         EXTENDREADS             = str(config["bamCoverage"]["params"]["EXTENDREADS"]),
@@ -306,8 +306,6 @@ rule bamcompare:
         "Running bamCompare for {wildcards.treatment} and {wildcards.control}"
     log:
         RESULT_DIR + "logs/deeptools/log2_{treatment}_{control}.bamcompare.bw.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{treatment}_{control}.bamcompare.benchmark.txt"
     conda:
         "envs/deeptools.yaml"
     params:
@@ -414,6 +412,8 @@ rule plotCorrelation:
         corMethod  = str(config['plotCorrelation']['corMethod']),
         whatToPlot = str(config['plotCorrelation']['whatToPlot']),
         color      = str(config['plotCorrelation']['color'])
+    conda:
+        "envs/deeptools.yaml"
     shell:
         "plotCorrelation \
                     --corData {input} \
@@ -451,6 +451,8 @@ rule computeMatrix:
     threads: 10
     params:
         binSize = str(config['computeMatrix']['binSize'])
+    conda:
+        "envs/deeptools.yaml"
     log:
         RESULT_DIR + "logs/deeptools/computematrix/{treatment}_{control}.log"
     shell:
@@ -476,6 +478,8 @@ rule plotHeatmap:
         color  = str(config['plotHeatmap']['color']),
         plot   = str(config['plotHeatmap']['plot']),
         cluster = "{treatment}_vs_{control}.bed"
+    conda:
+        "envs/deeptools.yaml"
     shell:
         "plotHeatmap \
         --matrixFile {input} \
@@ -484,3 +488,51 @@ rule plotHeatmap:
         --colorMap {params.color} \
         --legendLocation best \
         --outFileSortedRegions {params.cluster}"
+
+rule plotFingerprint:
+    input:
+        treatment = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam", treatment = CASES),
+        control   = expand(RESULT_DIR + "mapped/{control}.sorted.rmdup.bam", control = CONTROLS)
+    output:
+        pdf = RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf"
+    params:
+        EXTENDREADS  = str(config["bamCoverage"]["params"]["EXTENDREADS"]),
+        binSize      = str(config['bamCoverage']["params"]['binSize'])
+    conda:
+        "envs/deeptools.yaml"
+    shell:
+        "plotFingerprint \
+        -b {input.treatment} {input.control} \
+        --extendReads {params.EXTENDREADS} \
+        --binSize {params.binSize} \
+        --plotFile {output}"
+
+rule plotProfile:
+    input:
+        RESULT_DIR + "multiBamSummary/{sample}.npz"
+    output:
+        pdf = RESULT_DIR + "plotProfile/{treatment}_{control}.pdf",
+        bed = RESULT_DIR + "plotProfile/{treatment}_{control}.bed"
+    params:
+        kmeans      = str(config['plotHeatmap']['kmeans']),
+        startLabel  = str(config['plotHeatmap']['startLabel']),
+        endLabel    = str(config['plotHeatmap']['endLabel'])
+    conda:
+        "envs/deeptools.yaml"
+    shell:
+        "plotProfile \
+        --matrixFile {input} \
+        --outFileName {output.pdf} \
+        --outFileSortedRegions {output.bed} \
+        --kmeans {params.kmeans} \
+        --startLabel {params.startLabel} \
+        --endLabel {params.endLabel}"
+
+rule multiqc:
+    input:
+    output:
+        "multiqc_report.html"
+    conda:
+        "envs/multiqc_env.yaml"
+    shell:""
+        
