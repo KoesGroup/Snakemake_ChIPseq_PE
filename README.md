@@ -54,3 +54,13 @@ To run the pipeline, from the folder containing the Snakefile run the
 
 # Main outputs
 The main output are for now  **fastqc**, **bed** and **bigwig files**. Optionals outputs of the pipelines are **bamCompare**, **bedgraph** and **bed files for broad peaks calling**.
+With the implementation of deeptools rules, the pipeline produces as well those outputs:
+
+- **plotFingerprint** contains interesting figures that answer the question: **"Did my ChIP work???"** . Explanation of the plot and the options available can be found [here](https://deeptools.readthedocs.io/en/develop/content/tools/plotFingerprint.html)
+
+- **PLOTCORRELATION** folder contain pdf files displaying the correlation between the samples tested in the ChIP experiment, many options in the plotcorrelation rules can be changed via the configuration file. More information about this plot can be found [here](https://deeptools.readthedocs.io/en/develop/content/tools/plotCorrelation.html)
+
+- **HEATMAP** folder contain pdf files displaying the content of the matrix produced by the `computeMatrix` rule under the form of a heatmap. Many option for the `computeMatrix` and the `plotHeatmap` rules can be changed in the configuration file. More information about this figure can be found [here](https://deeptools.readthedocs.io/en/develop/content/tools/plotHeatmap.html).
+
+- **plotProfile** folder contain pdf files displaying profile plot for scores over sets of genomic region, again the genomic region are define in the matrix made previously. Again there are many options to change the plot and more information can be found [here](https://deeptools.readthedocs.io/en/develop/content/tools/plotProfile.html)
+
