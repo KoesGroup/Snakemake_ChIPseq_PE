@@ -9,6 +9,15 @@ units: units.tsv
 working_dir: "temp/"
 result_dir: "results/"
 
+# samples
+#samples:
+    #ChIP1:
+        #forward: sub_ChIP1_1.fq
+        #reverse: sub_ChIP1_2.fq
+    #ChIP2:
+        #forward: sub_ChIP2_1.fq
+        #reverse: sub_ChIP2_2.fq
+
 # adapters for trimmomatic
 adapters: "adapters.fasta"
 
@@ -65,7 +74,7 @@ bamcompare:
   EFFECTIVEGENOMESIZE: '820000000'
   operation : "log2"              #others choices are ratio, subtract, add, mean, reciprocal_ratio, first, second more documentation:https://deeptools.readthedocs.io/en/develop/content/tools/bamCompare.html?highlight=bamcompare
   smoothLength: "40"
-  scaleFactorsMethod: "None"       #others choices are readCount, SES
+  scaleFactorsMethod: "None"       #others choices are readCount, ,SES
   ignoreForNormalization: "SL3.0ch00" #list here space-delimited chromosomes that should be ignored for normalization, sex chromosomes usually.
 
 
@@ -96,3 +105,13 @@ plotHeatmap:
   kmeans    : "3"
   color     : "PuBuGn"
   plot      : "plot, heatmap and colorbar"    # Others options are : “plot and heatmap”, “heatmap only” and “heatmap and colorbar”
+
+
+plotFingerprint:
+    EXTENDREADS: '200'
+    binSize: "10"
+
+plotProfile:
+    kmeans : "1"                  # choose the number of kmeans to compute
+    startLabel : "TSS"            # default is TSS but could be anything, like "peak start"
+    endLabel : "TES"              # TES is default but can be changed like for startLabel
