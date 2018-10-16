@@ -514,9 +514,9 @@ rule plotProfile:
         pdf = RESULT_DIR + "plotProfile/{treatment}_{control}.pdf",
         bed = RESULT_DIR + "plotProfile/{treatment}_{control}.bed"
     params:
-        kmeans      = str(config['plotHeatmap']['kmeans']),
-        startLabel  = str(config['plotHeatmap']['startLabel']),
-        endLabel    = str(config['plotHeatmap']['endLabel'])
+        kmeans      = str(config['plotProfile']['kmeans']),
+        startLabel  = str(config['plotProfile']['startLabel']),
+        endLabel    = str(config['plotProfile']['endLabel'])
     conda:
         "envs/deeptools.yaml"
     shell:
@@ -528,11 +528,11 @@ rule plotProfile:
         --startLabel {params.startLabel} \
         --endLabel {params.endLabel}"
 
-rule multiqc:
-    input:
-    output:
-        "multiqc_report.html"
-    conda:
-        "envs/multiqc_env.yaml"
-    shell:""
+#rule multiqc:
+#    input:
+#    output:
+#        "multiqc_report.html"
+#    conda:
+#        "envs/multiqc_env.yaml"
+#    shell:""
         
