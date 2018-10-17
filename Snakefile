@@ -77,8 +77,8 @@ BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
 BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS) #add zip function in the expand to compare respective treatment and control
 BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS)
 BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak", zip, treatment = CASES, control = CONTROLS)
-MULTIBAMSUMMARY =     expand(RESULT_DIR + "multiBamSummary/{group}.npz", group = list(GROUPS.keys()))
-PLOTCORRELATION =     expand(RESULT_DIR + "plotCorrelation/{sample}.png", sample = list(GROUPS.keys()))
+MULTIBAMSUMMARY =     expand(RESULT_DIR + "multiBamSummary/MATRIX.npz")
+PLOTCORRELATION =     expand(RESULT_DIR + "plotCorrelation/MATRIX.png")
 COMPUTEMATRIX   =     expand(RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz", treatment = CASES, control = CONTROLS)
 HEATMAP         =     expand(RESULT_DIR + "heatmap/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
 PLOTFINGERPRINT =     expand(RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf", zip, treatment = CASES, control = CONTROLS)
@@ -383,16 +383,16 @@ rule call_broad_peaks:
 
 rule multiBamSummary:
     input:
-        lambda wildcards: expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample = GROUPS[wildcards.group])
+        lambda wildcards: expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample = SAMPLES)
     output:
-        RESULT_DIR + "multiBamSummary/{group}.npz"
+        RESULT_DIR + "multiBamSummary/MATRIX.npz"
     message:
-        "Computing the read coverage for {wildcards.group} "
+        "Computing the read coverage into a numpy arraty "
     threads: 10
     params:
         binSize     = str(config['multiBamSummary']['binSize'])
     log:
-        RESULT_DIR + "logs/deeptools/multibamsummary/{group}.log"
+        RESULT_DIR + "logs/deeptools/multibamsummary/MATRIX.log"
 
     shell:
         "multiBamSummary bins \
@@ -407,11 +407,11 @@ rule multiBamSummary:
 
 rule plotCorrelation:
     input:
-        RESULT_DIR + "multiBamSummary/{sample}.npz"
+        RESULT_DIR + "multiBamSummary/MATRIX.npz"
     output:
-        RESULT_DIR + "plotCorrelation/{sample}.png"
+        RESULT_DIR + "plotCorrelation/MATRIX.png"
     log:
-        RESULT_DIR + "logs/deeptools/plotcorrelation/{sample}.log"
+        RESULT_DIR + "logs/deeptools/plotcorrelation/MATRIX.log"
     params:
         corMethod  = str(config['plotCorrelation']['corMethod']),
         whatToPlot = str(config['plotCorrelation']['whatToPlot']),
