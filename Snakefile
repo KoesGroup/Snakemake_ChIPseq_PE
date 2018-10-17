@@ -379,7 +379,6 @@ rule multiBamSummary:
         binSize     = str(config['multiBamSummary']['binSize'])
     log:
         RESULT_DIR + "logs/deeptools/multibamsummary/MATRIX.log"
-
     shell:
         "multiBamSummary bins \
         --bamfiles {input} \
@@ -404,6 +403,8 @@ rule plotCorrelation:
         color      = str(config['plotCorrelation']['color'])
     conda:
         "envs/deeptools.yaml"
+    message:
+        "Preparing the correlation plot between all samples"
     shell:
         "plotCorrelation \
                     --corData {input} \
@@ -445,6 +446,8 @@ rule computeMatrix:
         "envs/deeptools.yaml"
     log:
         RESULT_DIR + "logs/deeptools/computematrix/{treatment}_{control}.log"
+    message:
+        "Computing matrix for {input.bigwig} with {params.binSize} bp windows and {params.upstream} bp around TSS"        
     shell:
         "computeMatrix \
         reference-point \
@@ -470,6 +473,10 @@ rule plotHeatmap:
         cluster = "{treatment}_vs_{control}.bed"
     conda:
         "envs/deeptools.yaml"
+    log:
+        RESULT_DIR + "logs/deeptools/plotHeatmap/{treatment}_{control}.log"
+    message:
+        "Preparing Heatmaps..."        
     shell:
         "plotHeatmap \
         --matrixFile {input} \
@@ -490,6 +497,10 @@ rule plotFingerprint:
         binSize      = str(config['bamCoverage']["params"]['binSize'])
     conda:
         "envs/deeptools.yaml"
+    log:
+        RESULT_DIR + "logs/deeptools/plotFingerprint/{treatment}_vs_{control}.log"
+    message:
+        "Preparing deeptools plotFingerprint"        
     shell:
         "plotFingerprint \
         -b {input.treatment} {input.control} \
@@ -509,6 +520,10 @@ rule plotProfile:
         endLabel    = str(config['plotProfile']['endLabel'])
     conda:
         "envs/deeptools.yaml"
+    log:
+        RESULT_DIR + "logs/deeptools/plotProfile/{treatment}_{control}.log"
+    message:
+        "Preparing deeptools plotProfile"        
     shell:
         "plotProfile \
         --matrixFile {input} \
@@ -525,6 +540,8 @@ rule plotProfile:
 #        "multiqc_report.html"
 #    conda:
 #        "envs/multiqc_env.yaml"
+#    message:
+#        "Aggregating log files to generate a MultiQC report"
 #    shell:
 #        "multiqc {input} \
 #        -o {output} \
