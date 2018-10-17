@@ -130,8 +130,6 @@ rule trimmomatic:
     message: "trimming {wildcards.sample} reads"
     log:
         RESULT_DIR + "logs/trimmomatic/{sample}.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.trimmomatic.benchmark.txt"
     params :
         seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
         palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
@@ -186,8 +184,6 @@ rule index:
     message:"indexing genome"
     params:
         WORKING_DIR + "genome"
-    benchmark:
-        RESULT_DIR + "benchmarks/genome.index.benchmark.txt"
     threads: 10
     conda:
         "envs/samtools_bowtie_env.yaml"
@@ -207,17 +203,18 @@ rule align:
         bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
         index           = WORKING_DIR + "genome"
     threads: 10
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.align.benchmark.txt"
+    log:
+        RESULT_DIR + "logs/bowtie/{sample}.log"
     conda:
         "envs/samtools_bowtie_env.yaml"
     shell:
-        "bowtie2 {params.bowtie} "
-        "--threads {threads} "
-        "-x {params.index} "
-        "-1 {input.forward} -2 {input.reverse} "
-        "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming
-        "| samtools view -Sb - > {output}"                       # to get the output as a BAM file directly
+        "bowtie2 {params.bowtie} \
+        --threads {threads} \
+        -x {params.index} \
+        -1 {input.forward} -2 {input.reverse} \
+        -U {input.forwardUnpaired},{input.reverseUnpaired} \
+        | samtools view -Sb - > {output} \
+        &>{log}"                       # to get the output as a BAM file directly
 
 rule sort:
     input:
@@ -225,8 +222,6 @@ rule sort:
     output:
         temp(RESULT_DIR + "mapped/{sample}.sorted.bam")
     message:"sorting {wildcards.sample} bam file"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.sort.benchmark.txt"
     threads: 10
     log:
         RESULT_DIR + "logs/samtools/{sample}.sort.log"
@@ -243,8 +238,6 @@ rule rmdup:
     message: "Removing duplicate from file {wildcards.sample}"
     log:
         RESULT_DIR + "logs/samtools/{sample}.sorted.rmdup.bam.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.rmdup.benchmark.txt"
     conda:
         "envs/samtools.yaml"
     shell:
@@ -265,8 +258,6 @@ rule bedgraph:
         "Creation of {wildcards.sample} bedgraph file"
     log:
         RESULT_DIR + "logs/deeptools/{sample}.sorted.rmdup.bedgraph.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
     conda:
         "envs/deeptools.yaml"
     shell:
@@ -347,13 +338,10 @@ rule call_narrow_peaks:
         qvalue      = str(config['macs2']['qvalue'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.narrowPeak.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peaknarrow.benchmark.txt"
     conda:
         "envs/macs2_env.yaml"
     shell:
-        """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
+        """macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
         """
 
 rule call_broad_peaks:
@@ -371,15 +359,10 @@ rule call_broad_peaks:
         qvalue      = str(config['macs2']['qvalue'])
     log:
         RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.broadPeak.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peakbroad.benchmark.txt"
     conda:
         "envs/macs2_env.yaml"
     shell:
-        """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}
-        """
-
+        "macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir results/bed/ &>{log}"
 
 rule multiBamSummary:
     input:
@@ -393,7 +376,6 @@ rule multiBamSummary:
         binSize     = str(config['multiBamSummary']['binSize'])
     log:
         RESULT_DIR + "logs/deeptools/multibamsummary/MATRIX.log"
-
     shell:
         "multiBamSummary bins \
         --bamfiles {input} \
@@ -402,7 +384,7 @@ rule multiBamSummary:
         --centerReads \
         --extendReads \
         -o {output} \
-        2> {log}"
+        &> {log}"
 
 
 rule plotCorrelation:
@@ -418,6 +400,8 @@ rule plotCorrelation:
         color      = str(config['plotCorrelation']['color'])
     conda:
         "envs/deeptools.yaml"
+    log:
+        RESULT_DIR + "logs/deeptools/plotCorrelation.log"
     shell:
         "plotCorrelation \
                     --corData {input} \
@@ -427,7 +411,7 @@ rule plotCorrelation:
                     --colorMap {params.color} \
                     --plotFile {output} \
                     --plotNumbers \
-                    2> {log}"
+                    &> {log}"
 
 #--plotTitle 'Pearson Correlation of {params.title} coverage' \
 
@@ -442,6 +426,8 @@ rule gff_to_gtf:
         WORKING_DIR + "gene_model.gff"
     output:
         WORKING_DIR + "gene_model.gtf"
+    message:
+        "Converting GFF file to GTF file to use with computeMatrix"
     shell:
         "python scripts/gff_to_gtf.py {input} {output}"
 
@@ -454,23 +440,27 @@ rule computeMatrix:
         RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
     threads: 10
     params:
-        binSize = str(config['computeMatrix']['binSize'])
+        binSize     = str(config['computeMatrix']['binSize']),
+        upstream    = str(config['computeMatrix']['upstream']),
+        downstream  = str(config['computeMatrix']['downstream'])
     conda:
         "envs/deeptools.yaml"
     log:
         RESULT_DIR + "logs/deeptools/computematrix/{treatment}_{control}.log"
+    message:
+        "Computing matrix for {input.bigwig} with bins of {params.binSize} and {params.upstream} bp around TSS"
     shell:
         "computeMatrix \
         reference-point \
         --referencePoint TSS \
         -S {input.bigwig} \
         -R {input.bed} \
-        --afterRegionStartLength 3000 \
-        --beforeRegionStartLength 3000 \
+        --afterRegionStartLength {params.upstream} \
+        --beforeRegionStartLength {params.downstream} \
         --numberOfProcessors {threads} \
         --binSize {params.binSize} \
         -o {output} \
-        2> {log}"
+        &>{log}"
 
 rule plotHeatmap:
     input:
@@ -478,12 +468,16 @@ rule plotHeatmap:
     output:
         RESULT_DIR + "heatmap/{treatment}_{control}.pdf"
     params:
-        kmeans = str(config['plotHeatmap']['kmeans']),
-        color  = str(config['plotHeatmap']['color']),
-        plot   = str(config['plotHeatmap']['plot']),
+        kmeans  = str(config['plotHeatmap']['kmeans']),
+        color   = str(config['plotHeatmap']['color']),
+        plot    = str(config['plotHeatmap']['plot']),
         cluster = "{treatment}_vs_{control}.bed"
     conda:
         "envs/deeptools.yaml"
+    log:
+        RESULT_DIR + "logs/deeptools/plotHeatmap/{treatment}_{control}.log"
+    message:
+        "Preparing Heatmaps..."
     shell:
         "plotHeatmap \
         --matrixFile {input} \
@@ -491,38 +485,48 @@ rule plotHeatmap:
         --kmeans {params.kmeans} \
         --colorMap {params.color} \
         --legendLocation best \
-        --outFileSortedRegions {params.cluster}"
+        --outFileSortedRegions {params.cluster}\
+        &>{log}"
 
 rule plotFingerprint:
     input:
-        treatment = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam", treatment = CASES),
-        control   = expand(RESULT_DIR + "mapped/{control}.sorted.rmdup.bam", control = CONTROLS)
+        treatment       = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam", treatment = CASES),
+        control         = expand(RESULT_DIR + "mapped/{control}.sorted.rmdup.bam", control = CONTROLS)
     output:
-        pdf = RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf"
+        pdf             = RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf"
     params:
-        EXTENDREADS  = str(config["bamCoverage"]["params"]["EXTENDREADS"]),
-        binSize      = str(config['bamCoverage']["params"]['binSize'])
+        EXTENDREADS     = str(config["bamCoverage"]["params"]["EXTENDREADS"]),
+        binSize         = str(config['bamCoverage']["params"]['binSize'])
     conda:
         "envs/deeptools.yaml"
+    log:
+        RESULT_DIR + "logs/deeptools/plotHeatmap/{treatment}_vs_{control}.log"
+    message:
+        "Preparing deeptools plotFingerprint"
     shell:
         "plotFingerprint \
         -b {input.treatment} {input.control} \
         --extendReads {params.EXTENDREADS} \
         --binSize {params.binSize} \
-        --plotFile {output}"
+        --plotFile {output} \
+        &>{log}"
 
 rule plotProfile:
     input:
         RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
     output:
-        pdf = RESULT_DIR + "plotProfile/{treatment}_{control}.pdf",
-        bed = RESULT_DIR + "plotProfile/{treatment}_{control}.bed"
+        pdf         = RESULT_DIR + "plotProfile/{treatment}_{control}.pdf",
+        bed         = RESULT_DIR + "plotProfile/{treatment}_{control}.bed"
     params:
         kmeans      = str(config['plotProfile']['kmeans']),
         startLabel  = str(config['plotProfile']['startLabel']),
         endLabel    = str(config['plotProfile']['endLabel'])
     conda:
         "envs/deeptools.yaml"
+    log:
+        RESULT_DIR + "logs/deeptools/plotProfile/{treatment}_{control}.log"
+    message:
+        "Preparing deeptools plotProfile"
     shell:
         "plotProfile \
         --matrixFile {input} \
@@ -530,7 +534,8 @@ rule plotProfile:
         --outFileSortedRegions {output.bed} \
         --kmeans {params.kmeans} \
         --startLabel {params.startLabel} \
-        --endLabel {params.endLabel}"
+        --endLabel {params.endLabel} \
+        &>{log}"
 
 #rule multiqc:
 #    input:

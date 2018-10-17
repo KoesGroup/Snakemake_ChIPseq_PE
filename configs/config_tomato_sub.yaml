@@ -87,6 +87,8 @@ multiBamSummary:
 
 computeMatrix:
   binSize   : "1000"
+  upstream  : "3000"
+  downstream: "3000"
 
 plotCorrelation:
   corMethod : "pearson"            # Can be replaced by spearman
