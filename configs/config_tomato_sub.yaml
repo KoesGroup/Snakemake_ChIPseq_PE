@@ -54,14 +54,14 @@ bamCoverage:
   params:
     EFFECTIVEGENOMESIZE: '820000000' #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf #option is --effectiveGenomeSize
     EXTENDREADS: '200'              # extend each reads with a 200bp to match the average fragment size of the ChIP experiment
-    binSize: "10"
+    binSize: "1000"
     ignoreForNormalization: "SL3.0ch00" #list here space-delimited chromosomes that should be ignored for normalization, sex chromosomes usually.
     smoothLength: "40"
     normalizeUsing: "RPKM"
 
 
 bamcompare:
-  binSize: "10"
+  binSize: "1000"
   normalizeUsing: "RPKM"          #others choices are CPM, BPM, RPGC, None more documentation:https://deeptools.readthedocs.io/en/develop/content/tools/bamCompare.html?highlight=bamcompare
   EFFECTIVEGENOMESIZE: '820000000'
   operation : "log2"              #others choices are ratio, subtract, add, mean, reciprocal_ratio, first, second more documentation:https://deeptools.readthedocs.io/en/develop/content/tools/bamCompare.html?highlight=bamcompare
