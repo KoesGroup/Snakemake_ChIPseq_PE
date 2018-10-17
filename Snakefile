@@ -70,7 +70,7 @@ wildcard_constraints:
 ##############
 
 FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"})
-BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=SAMPLES)
+#BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=SAMPLES)
 BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=SAMPLES)
 BEDGRAPH        =     expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=SAMPLES)
 BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
@@ -91,7 +91,7 @@ MULTIQC         =     "multiqc_report.html"
 ################
 rule all:
     input:
-        BAM_INDEX,
+        #BAM_INDEX,
         BAM_RMDUP,
         FASTQC_REPORTS,
         BEDGRAPH,
@@ -266,8 +266,7 @@ rule bamCoverage:
     input:
         RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
     output:
-        bw = RESULT_DIR + "bigwig/{sample}.bw",
-        bai = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai"
+        bw = RESULT_DIR + "bigwig/{sample}.bw"
     message:
         "Converting {wildcards.sample} bam into bigwig file"
     log:
