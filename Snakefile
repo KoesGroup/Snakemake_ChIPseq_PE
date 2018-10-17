@@ -234,8 +234,7 @@ rule rmdup:
     input:
         RESULT_DIR + "mapped/{sample}.sorted.bam"
     output:
-        bam = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam",
-        bai = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai"        #bai files required for the bigwig and bamCompare rules
+        bam = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"      #bai files required for the bigwig and bamCompare rules
     message: "Removing duplicate from file {wildcards.sample}"
     log:
         RESULT_DIR + "logs/samtools/{sample}.sorted.rmdup.bam.log"
