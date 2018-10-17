@@ -84,6 +84,7 @@ HEATMAP         =     expand(RESULT_DIR + "heatmap/{treatment}_{control}.pdf", t
 PLOTFINGERPRINT =     expand(RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf", zip, treatment = CASES, control = CONTROLS)
 PLOTPROFILE_PDF =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
 PLOTPROFILE_BED =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.bed", treatment = CASES, control = CONTROLS)
+MULTIQC         =     "multiqc_report.html"
 
 ###############
 # Final output
@@ -104,7 +105,8 @@ rule all:
         HEATMAP,
         PLOTFINGERPRINT,
         PLOTPROFILE_PDF,
-        PLOTPROFILE_BED
+        PLOTPROFILE_BED,
+        #MULTIQC
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -213,8 +215,7 @@ rule align:
         -x {params.index} \
         -1 {input.forward} -2 {input.reverse} \
         -U {input.forwardUnpaired},{input.reverseUnpaired} \
-        | samtools view -Sb - > {output} \
-        &>{log}"                       # to get the output as a BAM file directly
+        | samtools view -Sb - > {output}"                       # to get the output as a BAM file directly
 
 rule sort:
     input:
@@ -242,8 +243,7 @@ rule rmdup:
         "envs/samtools.yaml"
     shell:
         """
-        samtools rmdup {input} {output.bam} &>{log}
-        samtools index {output.bam}
+        samtools rmdup {input} {output.bam} 2>{log}
         """
         #samtools manual says "This command is obsolete. Use markdup instead
 
@@ -282,14 +282,8 @@ rule bamCoverage:
     conda:
         "envs/deeptools.yaml"
     shell:
-        "bamCoverage --bam {input} \
-        -o {output} \
-        --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} \
-        --extendReads {params.EXTENDREADS} \
-        --binSize {params.binSize} \
-        --smoothLength {params.smoothLength} \
-        --ignoreForNormalization {params.ignoreForNormalization} \
-        &>{log}"
+        "samtools index {input}"
+        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} --binSize {params.binSize} --smoothLength {params.smoothLength} --ignoreForNormalization {params.ignoreForNormalization} &>{log}"
 
 rule bamcompare:
     input:
@@ -448,7 +442,7 @@ rule computeMatrix:
     log:
         RESULT_DIR + "logs/deeptools/computematrix/{treatment}_{control}.log"
     message:
-        "Computing matrix for {input.bigwig} with bins of {params.binSize} and {params.upstream} bp around TSS"
+        "Computing matrix for {input.bigwig} with {params.binSize} bp windows and {params.upstream} bp around TSS"
     shell:
         "computeMatrix \
         reference-point \
@@ -493,14 +487,15 @@ rule plotFingerprint:
         treatment       = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam", treatment = CASES),
         control         = expand(RESULT_DIR + "mapped/{control}.sorted.rmdup.bam", control = CONTROLS)
     output:
-        pdf             = RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf"
+        pdf             = RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf",
+        qc              = RESULT_DIR + "logs/deeptools/plotFingerprint/{treatment}_vs_{control}.outQualityMetrics"
     params:
         EXTENDREADS     = str(config["bamCoverage"]["params"]["EXTENDREADS"]),
         binSize         = str(config['bamCoverage']["params"]['binSize'])
     conda:
         "envs/deeptools.yaml"
     log:
-        RESULT_DIR + "logs/deeptools/plotHeatmap/{treatment}_vs_{control}.log"
+        RESULT_DIR + "logs/deeptools/plotFingerprint/{treatment}_vs_{control}.log"
     message:
         "Preparing deeptools plotFingerprint"
     shell:
@@ -508,7 +503,8 @@ rule plotFingerprint:
         -b {input.treatment} {input.control} \
         --extendReads {params.EXTENDREADS} \
         --binSize {params.binSize} \
-        --plotFile {output} \
+        --plotFile {output.pdf} \
+        --outQualityMetrics {output.qc}\
         &>{log}"
 
 rule plotProfile:
@@ -537,10 +533,19 @@ rule plotProfile:
         --endLabel {params.endLabel} \
         &>{log}"
 
+#multiqc has many option to generate a nice report, see more here:https://multiqc.info
 #rule multiqc:
 #    input:
+#        RESULT_DIR + "logs/"
 #    output:
 #        "multiqc_report.html"
+#    message:
+#        "Aggregate logs to generate MultiQC report"
 #    conda:
 #        "envs/multiqc_env.yaml"
-#    shell:""
+#    shell:
+#        "multiqc {input} \
+#        -o {output} \
+#        -v \
+#        -d \
+#        -f "
