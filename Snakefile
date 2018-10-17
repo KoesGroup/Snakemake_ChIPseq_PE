@@ -266,7 +266,8 @@ rule bamCoverage:
     input:
         RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
     output:
-        RESULT_DIR + "bigwig/{sample}.bw"
+        bw = RESULT_DIR + "bigwig/{sample}.bw",
+        bai = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai"
     message:
         "Converting {wildcards.sample} bam into bigwig file"
     log:
@@ -282,7 +283,7 @@ rule bamCoverage:
         "envs/deeptools.yaml"
     shell:
         "samtools index {input}"
-        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} --binSize {params.binSize} --smoothLength {params.smoothLength} --ignoreForNormalization {params.ignoreForNormalization} &>{log}"
+        "bamCoverage --bam {input} -o {output.bw} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} --binSize {params.binSize} --smoothLength {params.smoothLength} --ignoreForNormalization {params.ignoreForNormalization} &>{log}"
 
 rule bamcompare:
     input:
