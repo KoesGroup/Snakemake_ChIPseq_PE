@@ -441,7 +441,9 @@ rule computeMatrix:
         RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
     threads: 10
     params:
-        binSize = str(config['computeMatrix']['binSize'])
+        binSize = str(config['computeMatrix']['binSize']),
+        upstream    = str(config['computeMatrix']['upstream']),
+        downstream = str(config['computeMatrix']['downstream'])
     conda:
         "envs/deeptools.yaml"
     log:
@@ -454,8 +456,8 @@ rule computeMatrix:
         --referencePoint TSS \
         -S {input.bigwig} \
         -R {input.bed} \
-        --afterRegionStartLength 3000 \
-        --beforeRegionStartLength 3000 \
+        --afterRegionStartLength {params.upstream} \
+        --beforeRegionStartLength {params.downstream} \
         --numberOfProcessors {threads} \
         --binSize {params.binSize} \
         -o {output} \
