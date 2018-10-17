@@ -9,14 +9,6 @@ units: units.tsv
 working_dir: "temp/"
 result_dir: "results/"
 
-# samples
-#samples:
-    #ChIP1:
-        #forward: sub_ChIP1_1.fq
-        #reverse: sub_ChIP1_2.fq
-    #ChIP2:
-        #forward: sub_ChIP2_1.fq
-        #reverse: sub_ChIP2_2.fq
 
 # adapters for trimmomatic
 adapters: "adapters.fasta"
@@ -91,10 +83,10 @@ macs2:
   bandwidth: "--bw 350"           #the bandwidth is used to scan the genome for model building. To be set to the expected sonication fragment size.
 
 multiBamSummary:
-  binSize: "10"
+  binSize: "1000"
 
 computeMatrix:
-  binSize   : "10"
+  binSize   : "1000"
 
 plotCorrelation:
   corMethod : "pearson"            # Can be replaced by spearman
@@ -102,14 +94,14 @@ plotCorrelation:
   color     : "PuBuGn"             # see [here](https://matplotlib.org/examples/color/colormaps_reference.html) for alternative colors
 
 plotHeatmap:
-  kmeans    : "3"
+  kmeans    : "1"
   color     : "PuBuGn"
   plot      : "plot, heatmap and colorbar"    # Others options are : “plot and heatmap”, “heatmap only” and “heatmap and colorbar”
 
 
 plotFingerprint:
     EXTENDREADS: '200'
-    binSize: "10"
+    binSize: "1000"
 
 plotProfile:
     kmeans : "1"                  # choose the number of kmeans to compute

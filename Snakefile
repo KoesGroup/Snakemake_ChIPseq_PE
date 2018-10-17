@@ -82,6 +82,8 @@ PLOTCORRELATION =     expand(RESULT_DIR + "plotCorrelation/{sample}.png", sample
 COMPUTEMATRIX   =     expand(RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz", treatment = CASES, control = CONTROLS)
 HEATMAP         =     expand(RESULT_DIR + "heatmap/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
 PLOTFINGERPRINT =     expand(RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf", zip, treatment = CASES, control = CONTROLS)
+PLOTPROFILE_PDF =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.pdf", zip, treatement= CASES, control = CONTROLS)
+PLOTPROFILE_BED =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.bed", zip, treatement= CASES, control = CONTROLS)
 
 ###############
 # Final output
@@ -100,7 +102,9 @@ rule all:
         PLOTCORRELATION,
         COMPUTEMATRIX,
         HEATMAP,
-        PLOTFINGERPRINT
+        PLOTFINGERPRINT,
+        PLOTPROFILE_PDF,
+        PLOTPROFILE_BED
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -535,4 +539,3 @@ rule plotProfile:
 #    conda:
 #        "envs/multiqc_env.yaml"
 #    shell:""
-        
