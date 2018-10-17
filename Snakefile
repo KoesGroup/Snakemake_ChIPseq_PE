@@ -82,8 +82,8 @@ PLOTCORRELATION =     expand(RESULT_DIR + "plotCorrelation/{sample}.png", sample
 COMPUTEMATRIX   =     expand(RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz", treatment = CASES, control = CONTROLS)
 HEATMAP         =     expand(RESULT_DIR + "heatmap/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
 PLOTFINGERPRINT =     expand(RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf", zip, treatment = CASES, control = CONTROLS)
-PLOTPROFILE_PDF =     expand(RESULT_DIR + "plotProfile/{group}.pdf", zip, group= list(GROUPS.keys()))
-PLOTPROFILE_BED =     expand(RESULT_DIR + "plotProfile/{group}.bed", zip, group= list(GROUPS.keys()))
+PLOTPROFILE_PDF =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
+PLOTPROFILE_BED =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.bed", treatment = CASES, control = CONTROLS)
 
 ###############
 # Final output
@@ -513,10 +513,10 @@ rule plotFingerprint:
 
 rule plotProfile:
     input:
-        RESULT_DIR + "multiBamSummary/{group}.npz"
+        RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
     output:
-        pdf = RESULT_DIR + "plotProfile/{group}.pdf",
-        bed = RESULT_DIR + "plotProfile/{group}.bed"
+        pdf = RESULT_DIR + "plotProfile/{treatment}_{control}.pdf",
+        bed = RESULT_DIR + "plotProfile/{treatment}_{control}.bed"
     params:
         kmeans      = str(config['plotProfile']['kmeans']),
         startLabel  = str(config['plotProfile']['startLabel']),
