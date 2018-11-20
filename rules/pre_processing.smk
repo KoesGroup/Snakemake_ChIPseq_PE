@@ -1,10 +1,8 @@
 rule trimmomatic_se:
     input:
-        reads =get_fastq,
-        adapters = config["adapters"]
+        get_fastq
     output:
-        fastq=WORKING_DIR + "trimmed/{sample}.fastq.gz",
-        fastqUnpaired = temp(WORKING_DIR + "trimmed/{sample}.unpaired.fastq.gz")
+        WORKING_DIR + "trimmed/{sample}.fastq.gz"
     message: "Trimming single-end {wildcards.sample} reads"
     log:
         RESULT_DIR + "logs/trimmomatic_se/{sample}.log"
@@ -19,22 +17,22 @@ rule trimmomatic_se:
         windowSize =                str(config['trimmomatic']['windowSize']),
         avgMinQual =                str(config['trimmomatic']['avgMinQual']),
         minReadLen =                str(config['trimmomatic']['minReadLength']),
-        phred = 		            str(config["trimmomatic"]["phred"])
+        phred = 		            str(config["trimmomatic"]["phred"]),
+        adapters =                  config["adapters"]
     threads: 10
-    # conda:
-    #     "../envs/trimmomatic_env.yaml"
-    # shell:
-    #     "trimmomatic SE {params.phred} -threads {threads} "
-    #     "{input.reads} "
-    #     "{output.fastq} "
-    #     "{output.fastqUnpaired} "
-    #     "ILLUMINACLIP:{input.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
-    #     "LEADING:{params.LeadMinTrimQual} "
-    #     "TRAILING:{params.TrailMinTrimQual} "
-    #     "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
-    #     "MINLEN:{params.minReadLen}"
-    wrapper:
-        "0.27.1/bio/trimmomatic/se"
+    conda:
+        "../envs/trimmomatic_env.yaml"
+    shell:
+        "trimmomatic SE {params.phred} -threads {threads} "
+        "{input} "
+        "{output} "
+        "ILLUMINACLIP:{params.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
+        "LEADING:{params.LeadMinTrimQual} "
+        "TRAILING:{params.TrailMinTrimQual} "
+        "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
+        "MINLEN:{params.minReadLen}"
+    # wrapper:
+    #     "0.27.1/bio/trimmomatic/se"
 rule trimmomatic_pe:
     input:
         reads = get_fastq,
@@ -109,13 +107,13 @@ rule index:
 
 rule align:
     input:
-        sample          = get_trimmed_reads,
-        index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
+        sample= get_trimmed_reads,
+        # index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
     output:
-        temp(WORKING_DIR + "mapped/{sample}.bam")
+        WORKING_DIR + "mapped/{sample}.bam"
     message: "Mapping files {wildcards.sample} to Reference genome"
     params:
-        bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
+        # bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
         index           = WORKING_DIR + "genome",
         extra =""
     threads: 10
@@ -164,18 +162,18 @@ rule rmdup:
         """
         #samtools manual says "This command is obsolete. Use markdup instead
 
-rule bedgraph:
-    input:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
-    output:
-        RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph"
-    params:
-        genome = WORKING_DIR + "genome"
-    message:
-        "Creation of {wildcards.sample} bedgraph file"
-    log:
-        RESULT_DIR + "logs/deeptools/{sample}.sorted.rmdup.bedgraph.log"
-    conda:
-        "../envs/bedtools_env.yaml"
-    shell:
-        "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
+# rule bedgraph:
+#     input:
+#         RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+#     output:
+#         RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph"
+#     params:
+#         genome = WORKING_DIR + "genome"
+#     message:
+#         "Creation of {wildcards.sample} bedgraph file"
+#     log:
+#         RESULT_DIR + "logs/deeptools/{sample}.sorted.rmdup.bedgraph.log"
+#     conda:
+#         "../envs/bedtools_env.yaml"
+#     shell:
+#         "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
