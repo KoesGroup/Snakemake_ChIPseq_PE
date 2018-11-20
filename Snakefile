@@ -37,8 +37,17 @@ def get_samples_per_treatment(input_df="units.tsv",colsamples="sample",coltreatm
     return filtered_samples
 
 def is_single_end(sample):
-    """This function detect missing value in the column 2 of the units.tsv"""
+    """This function detect missing value in the column 2 of the units.tsv, it is used by the function get_trimmed_reads to define the samples used by the align rule"""
     return pd.isnull(units.loc[(sample), "fq2"])
+
+def get_trimmed_reads(wildcards):
+    """Get trimmed reads of a given sample """
+    if not is_single_end(**wildcards):
+        # paired-end sample
+        return expand(WORKING_DIR + "trimmed/{sample}.{group}.fastq.gz",
+                      group=[1, 2], **wildcards)
+    # single end sample
+    return WORKING_DIR + "trimmed/{sample}.fastq.gz".format(**wildcards)
 
 ##############
 # Samples and conditions
@@ -69,7 +78,7 @@ wildcard_constraints:
 # Desired output
 ##############
 
-FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"})
+FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}.fastqc.html", sample=SAMPLES)
 BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=SAMPLES)
 BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=SAMPLES)
 BEDGRAPH        =     expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=SAMPLES)
@@ -84,6 +93,7 @@ HEATMAP         =     expand(RESULT_DIR + "heatmap/{treatment}_{control}.pdf", t
 PLOTFINGERPRINT =     expand(RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf", zip, treatment = CASES, control = CONTROLS)
 PLOTPROFILE_PDF =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
 PLOTPROFILE_BED =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.bed", treatment = CASES, control = CONTROLS)
+MULTIQC         =     RESULT_DIR + "multiqc_report.html"
 
 ###############
 # Final output
@@ -92,8 +102,8 @@ rule all:
     input:
         BAM_INDEX,
         BAM_RMDUP,
-        FASTQC_REPORTS,
-        BEDGRAPH,
+        #FASTQC_REPORTS,
+        #BEDGRAPH,
         BIGWIG,
         BAM_COMPARE,
         BED_NARROW,
@@ -104,7 +114,8 @@ rule all:
         HEATMAP,
         PLOTFINGERPRINT,
         PLOTPROFILE_PDF,
-        PLOTPROFILE_BED
+        PLOTPROFILE_BED,
+        #MULTIQC
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"#rm -rf {WORKING_DIR}"
@@ -117,18 +128,17 @@ include : "rules/external_data.smk"
 include : 'rules/pre_processing.smk'
 include : "rules/macs2_peak_calling.smk"
 include : "rules/deeptools_post_processing.smk"
-#rule multiqc:
-#    input:
-#        RESULT_DIR + "logs/"
-#    output:
-#        "multiqc_report.html"
-#    conda:
-#        "envs/multiqc_env.yaml"
-#    message:
-#        "Aggregating log files to generate a MultiQC report"
-#    shell:
-#        "multiqc {input} \
-#        -o {output} \
-#        -v \
-#        -d \
-#        -f "
+
+
+rule multiqc:
+    input:
+        expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"}),
+        expand(RESULT_DIR + "bed/{sample}_peaks.xls", sample= SAMPLES)
+    output:
+        "qc/multiqc.html"
+    params:
+        ""  # Optional: extra parameters for multiqc.
+    log:
+        "logs/multiqc.log"
+    wrapper:
+        "0.27.1/bio/multiqc"

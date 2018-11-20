@@ -1,17 +1,55 @@
-
-rule trimmomatic:
+rule trimmomatic_se:
+    input:
+        reads =get_fastq,
+        adapters = config["adapters"]
+    output:
+        fastq=WORKING_DIR + "trimmed/{sample}.fastq.gz",
+        fastqUnpaired = temp(WORKING_DIR + "trimmed/{sample}.unpaired.fastq.gz")
+    message: "Trimming single-end {wildcards.sample} reads"
+    log:
+        RESULT_DIR + "logs/trimmomatic_se/{sample}.log"
+    params :
+        trimmer = ["TRAILING:3"],
+        extra = "",
+        seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
+        palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
+        simpleClipThreshhold =      str(config['trimmomatic']['simpleClipThreshold']),
+        LeadMinTrimQual =           str(config['trimmomatic']['LeadMinTrimQual']),
+        TrailMinTrimQual =          str(config['trimmomatic']['TrailMinTrimQual']),
+        windowSize =                str(config['trimmomatic']['windowSize']),
+        avgMinQual =                str(config['trimmomatic']['avgMinQual']),
+        minReadLen =                str(config['trimmomatic']['minReadLength']),
+        phred = 		            str(config["trimmomatic"]["phred"])
+    threads: 10
+    # conda:
+    #     "../envs/trimmomatic_env.yaml"
+    # shell:
+    #     "trimmomatic SE {params.phred} -threads {threads} "
+    #     "{input.reads} "
+    #     "{output.fastq} "
+    #     "{output.fastqUnpaired} "
+    #     "ILLUMINACLIP:{input.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
+    #     "LEADING:{params.LeadMinTrimQual} "
+    #     "TRAILING:{params.TrailMinTrimQual} "
+    #     "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
+    #     "MINLEN:{params.minReadLen}"
+    wrapper:
+        "0.27.1/bio/trimmomatic/se"
+rule trimmomatic_pe:
     input:
         reads = get_fastq,
         adapters = config["adapters"]
     output:
-        forward_reads   = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse_reads   = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
-        forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz"),
-        reverseUnpaired = temp(WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz")
-    message: "Trimming {wildcards.sample} reads"
+        forward_reads  = WORKING_DIR + "trimmed/{sample}.1.fastq.gz",
+        reverse_reads  = WORKING_DIR + "trimmed/{sample}.2.fastq.gz",
+        forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}.1.unpaired.fastq.gz"),
+        reverseUnpaired  = temp(WORKING_DIR + "trimmed/{sample}.2.unpaired.fastq.gz")
+    message: "Trimming paired-end {wildcards.sample} reads"
     log:
-        RESULT_DIR + "logs/trimmomatic/{sample}.log"
+        RESULT_DIR + "logs/trimmomatic_pe/{sample}.log"
     params :
+        trimmer = ["TRAILING:3"],
+        extra = "",
         seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
         palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
         simpleClipThreshhold =      str(config['trimmomatic']['simpleClipThreshold']),
@@ -36,24 +74,23 @@ rule trimmomatic:
         "TRAILING:{params.TrailMinTrimQual} "
         "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
         "MINLEN:{params.minReadLen} &>{log}"
+    # wrapper:
+    #     "0.27.1/bio/trimmomatic/pe"
 
 rule fastqc:
     input:
-        fwd = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        rev = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
+        WORKING_DIR + "trimmed/{sample}.fastq.gz",
     output:
-        fwd = RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
-        rev = RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
+        html = RESULT_DIR + "fastqc/{sample}.fastqc.html",
+        rev = RESULT_DIR + "fastqc/{sample}.fastqc.zip"
     log:
         RESULT_DIR + "logs/fastqc/{sample}.fastqc.log"
     params:
-        RESULT_DIR + "fastqc/"
+        ""
     message:
         "Quality check of trimmed {wildcards.sample} sample with FASTQC"
-    conda:
-        "../envs/fastqc_env.yaml"
-    shell:
-        "fastqc --outdir={params} {input.fwd} {input.rev} &>{log}"
+    wrapper:
+        "0.27.1/bio/fastqc"
 
 rule index:
     input:
@@ -72,29 +109,29 @@ rule index:
 
 rule align:
     input:
-        forward         = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse         = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
-        forwardUnpaired = WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz",
-        reverseUnpaired = WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz",
+        sample          = get_trimmed_reads,
         index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
     output:
         temp(WORKING_DIR + "mapped/{sample}.bam")
     message: "Mapping files {wildcards.sample} to Reference genome"
     params:
         bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
-        index           = WORKING_DIR + "genome"
+        index           = WORKING_DIR + "genome",
+        extra =""
     threads: 10
-    conda:
-        "../envs/samtools_bowtie_env.yaml"
     log:
         RESULT_DIR + "logs/bowtie/{sample}.log"
-    shell:
-        "bowtie2 {params.bowtie} "
-        "--threads {threads} "
-        "-x {params.index} "
-        "-1 {input.forward} -2 {input.reverse} "
-        "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming
-        "| samtools view -Sb - > {output} 2>{log}"                       # to get the output as a BAM file directly
+    conda:
+        "../envs/samtools_bowtie_env.yaml"
+    # shell:
+    #     "bowtie2 {params.bowtie} "
+    #     "--threads {threads} "
+    #     "-x {params.index} "
+    #     "-1 {input.forward} -2 {input.reverse} "
+    #     "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming
+    #     "| samtools view -Sb - > {output} 2>{log}"                       # to get the output as a BAM file directly
+    wrapper:
+        "0.27.1/bio/bowtie2/align"
 
 rule sort:
     input:
@@ -139,6 +176,6 @@ rule bedgraph:
     log:
         RESULT_DIR + "logs/deeptools/{sample}.sorted.rmdup.bedgraph.log"
     conda:
-        "../envs/bedtools.yaml"
+        "../envs/bedtools_env.yaml"
     shell:
         "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
