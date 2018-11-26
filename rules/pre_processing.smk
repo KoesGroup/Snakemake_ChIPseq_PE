@@ -104,7 +104,7 @@ rule index:
         WORKING_DIR + "genome"
     threads: 10
     conda:
-        "../envs/samtools_bowtie_env.yaml"
+        "../envs/samtools_bowtie.yaml"
     shell:"bowtie2-build --threads {threads} {input} {params}"
 
 rule align:
@@ -122,7 +122,7 @@ rule align:
     log:
         RESULT_DIR + "logs/bowtie/{sample}.log"
     conda:
-        "../envs/samtools_bowtie_env.yaml"
+        "../envs/samtools_bowtie.yaml"
     # shell:
     #     "bowtie2 {params.bowtie} "
     #     "--threads {threads} "
