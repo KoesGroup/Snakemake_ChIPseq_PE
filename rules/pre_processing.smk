@@ -78,9 +78,7 @@ rule align:
         index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
     output:
         mapped          = WORKING_DIR + "mapped/{sample}.bam",
-        unmapped        = [WORKING_DIR + "unmapped/{sample}.fq." + str(i) +".gz" for i in range(1,2)],
-        bai             = WORKING_DIR + "mapped/{sample}.sorted.bam.bai",
-        sorted          = WORKING_DIR + "mapped/{sample}.sorted.bam"
+        unmapped        = [WORKING_DIR + "unmapped/{sample}.fq." + str(i) +".gz" for i in range(1,2)]
     message: "Mapping files {wildcards.sample}"
     params:
         bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
