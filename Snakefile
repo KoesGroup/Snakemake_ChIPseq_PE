@@ -1,4 +1,5 @@
 # Snakemake file for ChIP-Seq PE analysis
+# The pipeline runs with the command "snakemake --use-conda [--core] ", within the folder containing the Snakefile, after activation of the global_env.yaml
 
 ###############
 # Libraries
@@ -11,9 +12,9 @@ from snakemake.utils import validate, min_version
 # Configuration and sample sheets
 #############################################
 
-configfile: "configs/config_tomato_sub.yaml"
+configfile: "config.yaml"
 
-WORKING_DIR         = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
+WORKING_DIR         = config["temp_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
 RESULT_DIR          = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL    = config["refs"]["genome_url"]
@@ -81,7 +82,6 @@ wildcard_constraints:
 FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}.fastqc.html", sample=SAMPLES)
 BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=SAMPLES)
 BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=SAMPLES)
-BEDGRAPH        =     expand(RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph", sample=SAMPLES)
 BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
 BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS) #add zip function in the expand to compare respective treatment and control
 BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS)
@@ -105,7 +105,6 @@ rule all:
         #FASTQC_REPORTS,
         #BEDGRAPH,
         BIGWIG,
-        BAM_COMPARE,
         BED_NARROW,
         #BED_BROAD
         MULTIBAMSUMMARY,

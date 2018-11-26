@@ -9,34 +9,35 @@ rule trimmomatic_se:
     params :
         trimmer = ["TRAILING:3"],
         extra = "",
-        seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
-        palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
-        simpleClipThreshhold =      str(config['trimmomatic']['simpleClipThreshold']),
-        LeadMinTrimQual =           str(config['trimmomatic']['LeadMinTrimQual']),
-        TrailMinTrimQual =          str(config['trimmomatic']['TrailMinTrimQual']),
-        windowSize =                str(config['trimmomatic']['windowSize']),
-        avgMinQual =                str(config['trimmomatic']['avgMinQual']),
-        minReadLen =                str(config['trimmomatic']['minReadLength']),
-        phred = 		            str(config["trimmomatic"]["phred"]),
+        # seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
+        # palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
+        # simpleClipThreshhold =      str(config['trimmomatic']['simpleClipThreshold']),
+        # LeadMinTrimQual =           str(config['trimmomatic']['LeadMinTrimQual']),
+        # TrailMinTrimQual =          str(config['trimmomatic']['TrailMinTrimQual']),
+        # windowSize =                str(config['trimmomatic']['windowSize']),
+        # avgMinQual =                str(config['trimmomatic']['avgMinQual']),
+        # minReadLen =                str(config['trimmomatic']['minReadLength']),
+        # phred = 		            str(config["trimmomatic"]["phred"]),
         adapters =                  config["adapters"]
     threads: 10
-    conda:
-        "../envs/trimmomatic_env.yaml"
-    shell:
-        "trimmomatic SE {params.phred} -threads {threads} "
-        "{input} "
-        "{output} "
-        "ILLUMINACLIP:{params.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
-        "LEADING:{params.LeadMinTrimQual} "
-        "TRAILING:{params.TrailMinTrimQual} "
-        "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
-        "MINLEN:{params.minReadLen}"
-    # wrapper:
-    #     "0.27.1/bio/trimmomatic/se"
+    # conda:
+    #     "../envs/trimmomatic_env.yaml"
+    # shell:
+    #     "trimmomatic SE {params.phred} -threads {threads} "
+    #     "{input} "
+    #     "{output} "
+    #     "ILLUMINACLIP:{params.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
+    #     "LEADING:{params.LeadMinTrimQual} "
+    #     "TRAILING:{params.TrailMinTrimQual} "
+    #     "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
+    #     "MINLEN:{params.minReadLen}"
+    wrapper:
+        "0.27.1/bio/trimmomatic/se"
+
 rule trimmomatic_pe:
     input:
-        reads = get_fastq,
-        adapters = config["adapters"]
+        get_fastq,
+
     output:
         forward_reads  = WORKING_DIR + "trimmed/{sample}.1.fastq.gz",
         reverse_reads  = WORKING_DIR + "trimmed/{sample}.2.fastq.gz",
@@ -56,18 +57,19 @@ rule trimmomatic_pe:
         windowSize =                str(config['trimmomatic']['windowSize']),
         avgMinQual =                str(config['trimmomatic']['avgMinQual']),
         minReadLen =                str(config['trimmomatic']['minReadLength']),
-        phred = 		            str(config["trimmomatic"]["phred"])
+        phred = 		            str(config["trimmomatic"]["phred"]),
+        adapters =                  config["adapters"]
     threads: 10
     conda:
         "../envs/trimmomatic_env.yaml"
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
-        "{input.reads} "
+        "{input} "
         "{output.forward_reads} "
         "{output.forwardUnpaired} "
         "{output.reverse_reads} "
         "{output.reverseUnpaired} "
-        "ILLUMINACLIP:{input.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
+        "ILLUMINACLIP:{params.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
         "LEADING:{params.LeadMinTrimQual} "
         "TRAILING:{params.TrailMinTrimQual} "
         "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "

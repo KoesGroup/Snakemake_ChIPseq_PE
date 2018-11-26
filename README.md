@@ -7,7 +7,7 @@ A snakemake pipeline for the analysis of ChIP-seq data
 # Aim
 Snakemake pipeline made for reproducible analysis of paired-end Illumina ChIP-seq data. The desired output of this pipeline are:
 - fastqc zip and html files
-- bigWig files (including bamCompare rule)
+- bigWig files
 - bed files
 
 # Content of the repository
@@ -29,15 +29,14 @@ Snakemake pipeline made for reproducible analysis of paired-end Illumina ChIP-se
 
 ## Conda environment
 
-First, you need to create an environment for the use of Snakemake with [Conda package manager](https://conda.io/docs/using/envs.html).
+**First**, you need to create an environment for the use of `Snakemake` with [Conda package manager](https://conda.io/docs/using/envs.html).
 1. Create a virtual environment named "chipseq" from the `global_env.yaml` file with the following command: `conda env create --name chipseq --file ~/envs/global_env.yaml`
 2. Then, activate this virtual environment with `source activate chipseq`
 
-The Snakefile will then take care of installing and loading the packages and softwares required by each step of the pipeline.
+The `Snakefile` will then take care of installing and loading the packages and softwares required by each step of the pipeline.
 
 ## Configuration file
-
-The `~/configs/config_tomato_sub.yaml` file specifies the sample list, the genomic reference fasta file to use, the directories to use, etc. This file is then used to build parameters in the main `Snakefile`.
+The `config.yaml` file specifies the sample list, the genomic reference fasta file to use, the directories to use, etc. This file is then used to build parameters in the main `Snakefile`.
 
 ## Snakemake execution
 
@@ -45,8 +44,7 @@ The Snakemake pipeline/workflow management system reads a master file (often cal
 It has many rich features. Read more [here](https://snakemake.readthedocs.io/en/stable/).
 
 ## Samples
-
-Samples are listed in the `units.tsv` file and will be used by the Snakefile automatically. Change the name, the conditions accordingly.
+Samples are listed in the `units.tsv` file and will be used by the Snakefile automatically. Change in the 'units.tsv', the columns `fq1`, `fq2` and `conditions` according to your needs. `fq1` and `fq2` requires the path to the samples names relative to the Snakefile.
 
 ## Dry run
 
@@ -56,8 +54,8 @@ Use the command `snakemake -np` to perform a dry run that prints out the rules a
 
 Simply type `Snakemake --use-conda` and provide the number of cores with `--cores 10` for ten cores for instance.
 For cluster execution, please refer to the [Snakemake reference](https://snakemake.readthedocs.io/en/stable/executable.html#cluster-execution).
-Please pay attention to `--use-conda`, it is required for the installation and loading of the dependencies used by the rules of the pipeline.
-To run the pipeline, from the folder containing the Snakefile run the
+**Please pay attention** to add  `--use-conda`, it is required for the installation and loading of the dependencies used by the rules of the pipeline.
+To run the pipeline, from the folder containing the Snakefile run the command : `snakemake --use-conda --core 10`.
 
 # Main outputs
 
