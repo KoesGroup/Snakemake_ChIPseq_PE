@@ -1,54 +1,16 @@
-rule trimmomatic_se:
+rule trimmomatic:
     input:
-        get_fastq
+        reads = get_fastq,
+        adapters = config["adapters"]
     output:
-        WORKING_DIR + "trimmed/{sample}.fastq.gz"
-    message: "Trimming single-end {wildcards.sample} reads"
+        forward_reads   = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
+        reverse_reads   = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
+        forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz"),
+        reverseUnpaired = temp(WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz")
+    message: "trimming {wildcards.sample} reads"
     log:
-        RESULT_DIR + "logs/trimmomatic_se/{sample}.log"
+        RESULT_DIR + "logs/trimmomatic/{sample}.log"
     params :
-        trimmer = ["TRAILING:3"],
-        extra = "",
-        # seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
-        # palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
-        # simpleClipThreshhold =      str(config['trimmomatic']['simpleClipThreshold']),
-        # LeadMinTrimQual =           str(config['trimmomatic']['LeadMinTrimQual']),
-        # TrailMinTrimQual =          str(config['trimmomatic']['TrailMinTrimQual']),
-        # windowSize =                str(config['trimmomatic']['windowSize']),
-        # avgMinQual =                str(config['trimmomatic']['avgMinQual']),
-        # minReadLen =                str(config['trimmomatic']['minReadLength']),
-        # phred = 		            str(config["trimmomatic"]["phred"]),
-        adapters =                  config["adapters"]
-    threads: 10
-    # conda:
-    #     "../envs/trimmomatic_env.yaml"
-    # shell:
-    #     "trimmomatic SE {params.phred} -threads {threads} "
-    #     "{input} "
-    #     "{output} "
-    #     "ILLUMINACLIP:{params.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
-    #     "LEADING:{params.LeadMinTrimQual} "
-    #     "TRAILING:{params.TrailMinTrimQual} "
-    #     "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
-    #     "MINLEN:{params.minReadLen}"
-    wrapper:
-        "0.27.1/bio/trimmomatic/se"
-
-rule trimmomatic_pe:
-    input:
-        get_fastq,
-
-    output:
-        forward_reads  = WORKING_DIR + "trimmed/{sample}.1.fastq.gz",
-        reverse_reads  = WORKING_DIR + "trimmed/{sample}.2.fastq.gz",
-        forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}.1.unpaired.fastq.gz"),
-        reverseUnpaired  = temp(WORKING_DIR + "trimmed/{sample}.2.unpaired.fastq.gz")
-    message: "Trimming paired-end {wildcards.sample} reads"
-    log:
-        RESULT_DIR + "logs/trimmomatic_pe/{sample}.log"
-    params :
-        trimmer = ["TRAILING:3"],
-        extra = "",
         seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
         palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
         simpleClipThreshhold =      str(config['trimmomatic']['simpleClipThreshold']),
@@ -57,40 +19,40 @@ rule trimmomatic_pe:
         windowSize =                str(config['trimmomatic']['windowSize']),
         avgMinQual =                str(config['trimmomatic']['avgMinQual']),
         minReadLen =                str(config['trimmomatic']['minReadLength']),
-        phred = 		            str(config["trimmomatic"]["phred"]),
-        adapters =                  config["adapters"]
+        phred = 		            str(config["trimmomatic"]["phred"])
     threads: 10
     conda:
         "../envs/trimmomatic_env.yaml"
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
-        "{input} "
+        "{input.reads} "
         "{output.forward_reads} "
         "{output.forwardUnpaired} "
         "{output.reverse_reads} "
         "{output.reverseUnpaired} "
-        "ILLUMINACLIP:{params.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
+        "ILLUMINACLIP:{input.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
         "LEADING:{params.LeadMinTrimQual} "
         "TRAILING:{params.TrailMinTrimQual} "
         "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
         "MINLEN:{params.minReadLen} &>{log}"
-    # wrapper:
-    #     "0.27.1/bio/trimmomatic/pe"
 
 rule fastqc:
     input:
-        WORKING_DIR + "trimmed/{sample}.fastq.gz",
+        fwd = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
+        rev = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
     output:
-        html = RESULT_DIR + "fastqc/{sample}.fastqc.html",
-        rev = RESULT_DIR + "fastqc/{sample}.fastqc.zip"
+        fwd = RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
+        rev = RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
     log:
         RESULT_DIR + "logs/fastqc/{sample}.fastqc.log"
     params:
-        ""
+        RESULT_DIR + "fastqc/"
     message:
-        "Quality check of trimmed {wildcards.sample} sample with FASTQC"
-    wrapper:
-        "0.27.1/bio/fastqc"
+        "---Quality check of trimmed {wildcards.sample} sample with FASTQC"
+    conda:
+        "../envs/fastqc_env.yaml"
+    shell:
+        "fastqc --outdir={params} {input.fwd} {input.rev} &>{log}"
 
 rule index:
     input:
@@ -109,29 +71,30 @@ rule index:
 
 rule align:
     input:
-        sample= get_trimmed_reads,
-        # index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
+        forward         = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
+        reverse         = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
+        forwardUnpaired = WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz",
+        reverseUnpaired = WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz",
+        index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
     output:
-        WORKING_DIR + "mapped/{sample}.bam"
-    message: "Mapping files {wildcards.sample} to Reference genome"
+        mapped          = WORKING_DIR + "mapped/{sample}.bam",
+        unmapped        = [WORKING_DIR + "unmapped/{sample}.fq." + str(i) +".gz" for i in range(1,2)],
+        bai             = WORKING_DIR + "mapped/{sample}.sorted.bam.bai",
+        sorted          = WORKING_DIR + "mapped/{sample}.sorted.bam"
+    message: "Mapping files {wildcards.sample}"
     params:
-        # bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
+        bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
         index           = WORKING_DIR + "genome",
-        extra =""
+        unmapped        = WORKING_DIR + "unmapped/{sample}.fq.gz"
     threads: 10
-    log:
-        RESULT_DIR + "logs/bowtie/{sample}.log"
     conda:
         "../envs/samtools_bowtie_env.yaml"
-    # shell:
-    #     "bowtie2 {params.bowtie} "
-    #     "--threads {threads} "
-    #     "-x {params.index} "
-    #     "-1 {input.forward} -2 {input.reverse} "
-    #     "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming
-    #     "| samtools view -Sb - > {output} 2>{log}"                       # to get the output as a BAM file directly
-    wrapper:
-        "0.27.1/bio/bowtie2/align"
+    log:
+        RESULT_DIR + "logs/bowtie/{sample}.log"
+    shell:
+        """
+        bowtie2 {params.bowtie} --threads {threads} -x {params.index} -1 {input.forward} -2 {input.reverse} -U {input.forwardUnpaired},{input.reverseUnpaired} --un-conc-gz {params.unmapped} | samtools view -Sb - > {output.mapped} 2>{log} 
+        """    
 
 rule sort:
     input:
