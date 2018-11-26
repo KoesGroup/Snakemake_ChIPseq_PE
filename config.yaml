@@ -1,33 +1,37 @@
 ---
-# samples
 samples: sample.tsv
+
 units: units.tsv
 
+
 # files and directories
-temp_dir: "temp/"         # this directory will store intermediate files and everything that can be deleted upon execution of the pipeline
+#fastq_dir: "fastq/"
+working_dir: "temp/"
 result_dir: "results/"
 
-# resources
-cores: 16  #check this via 'grep -c processor /proc/cpuinfo' and use htop to see the number of CPUs in use
+
+# adapters for trimmomatic
+adapters: "adapters.fasta"
 
 # trimmomatic parameters
 trimmomatic:
-  adapters:                'adapters.fasta'
-  seedMisMatches:          '2'
-  palindromeClipTreshold:  '30'
-  simpleClipThreshold:     '10'
-  LeadMinTrimQual:         '3'
-  TrailMinTrimQual:        '3'
-  windowSize:              '4'
-  avgMinQual:              '15'
-  minReadLength:           '40'
-  phred:                   '-phred33' # phred: for illumina >1.8 the quality score are encoded by phred33
+  adapters: "adapters.fasta"
+  seedMisMatches: '2'
+  palindromeClipTreshold: '30'
+  simpleClipThreshold: '10'
+  LeadMinTrimQual: '3'
+  TrailMinTrimQual: '3'
+  windowSize: '4'
+  avgMinQual: '15'
+  minReadLength: '40'
+  phred: "-phred33" # phred: for illumina >1.8 the quality score are encoded by phred33
 
-# Genomic references, annotations and aligner indexes
+## Genomic references, annotations and aligner indexes
 refs:
   genome_url:  "ftp://ftp.solgenomics.net/tomato_genome/assembly/build_3.00/S_lycopersicum_chromosomes.3.00.fa"
-  gff_url:     "ftp://ftp.solgenomics.net/tomato_genome/annotation/ITAG3.2_release/ITAG3.2_gene_models.gff"
+  gff_url: "ftp://ftp.solgenomics.net/tomato_genome/annotation/ITAG3.0_release/ITAG3.0_gene_models.gff"
 
+#"ftp://ftp.solgenomics.net/tomato_genome/annotation/ITAG3.2_release/ITAG3.2_gene_models.gff"
 # Bowtie2 commands
 #bowtie2 --end-to-end --very-sensitive -p 16 -q --mm -x ../../bowtie/hg19 -1 02_trimmed/filename_forward_trimmed.fastq -2 02_trimmed/filename_reverse_trimmed.fastq -U 02_trimmed/filename__forward_Unpaired_trimmed.fastq,02_trimmed/Hfilename_reverse_Unpaired_trimmed.fastq -S 03_bowtie/filename.sam
 
@@ -40,7 +44,7 @@ bowtie2:
     min_fragment_len: "--minins 80"                 # minimum fragment length for valid paired-end alignments
     verbose: "-q"
 
-# Parameters for bamCoverage:
+#Parameters for bamCoverage:
 
 # bamCoverage --bam {input} -o {output} --effectiveGenomeSize
 # --effectiveGenomeSize    The effective genome size is the portion of the genome that is mappable. Large fractions of the genome are stretches of NNNN that should be discarded. Also, if repetitive regions were not included in the mapping of
@@ -48,17 +52,60 @@ bowtie2:
 
 bamCoverage:
   params:
-    EFFECTIVEGENOMESIZE: '820000000' # source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf #option is --effectiveGenomeSize
+    EFFECTIVEGENOMESIZE: '820000000' #source = http://plant-plasticity.github.io/resources/3_ATAC-seq%20data%20processing.pdf #option is --effectiveGenomeSize
     EXTENDREADS: '200'              # extend each reads with a 200bp to match the average fragment size of the ChIP experiment
+    binSize: "1000"
+    ignoreForNormalization: "SL3.0ch00" #list here space-delimited chromosomes that should be ignored for normalization, sex chromosomes usually.
+    smoothLength: "40"
+    normalizeUsing: "RPKM"
 
-# MACS2 Parameters:
+
+bamcompare:
+  binSize: "1000"
+  normalizeUsing: "RPKM"          #others choices are CPM, BPM, RPGC, None more documentation:https://deeptools.readthedocs.io/en/develop/content/tools/bamCompare.html?highlight=bamcompare
+  EFFECTIVEGENOMESIZE: '820000000'
+  operation : "log2"              #others choices are ratio, subtract, add, mean, reciprocal_ratio, first, second more documentation:https://deeptools.readthedocs.io/en/develop/content/tools/bamCompare.html?highlight=bamcompare
+  smoothLength: "40"
+  scaleFactorsMethod: "None"       #others choices are readCount, ,SES
+  ignoreForNormalization: "SL3.0ch00" #list here space-delimited chromosomes that should be ignored for normalization, sex chromosomes usually.
+
+
+
+# macs2 Parameters:
           # for information over macs2, refer to https://github.com/taoliu/MACS
           # regular peak calling : macs2 callpeak -t ChIP.bam -c Control.bam -f BAM -g hs -n test -B -q 0.01
           # broad peak calling : macs2 callpeak -t ChIP.bam -c Control.bam --broad -g hs --broad-cutoff 0.1
 macs2:
-  genomesize: "--gsize mm"        # here I used 'mm' because it's the closest to tomato, for human change to 'hs'
-  format: "--format BAMPE"        # Use BAMPE to activate the paired end data, MACS will use the actual insert size of pairs of reads to build the fragemnt pileup.
-  qvalue: "0.01"                  # default is 0.05
+  genomesize: "--gsize mm"        #here I used 'mm' because it's the closest to tomato, for human change to 'hs'
+  format: "--format BAMPE"        #Use BAMPE to activate the paired end data, MACS will use the actual insert size of pairs of reads to build the fragemnt pileup.
+  qvalue: "0.05"                  #default is 0.05
   outdir : "results/bed/"
-  bandwidth: "--bw 350"           # the bandwidth is used to scan the genome for model building. To be set to the expected sonication fragment size.
-  outdir: "results/bed/"          # change the path here according to where you want the outputs of macs2
+  bandwidth: "--bw 350"           #the bandwidth is used to scan the genome for model building. To be set to the expected sonication fragment size.
+
+multiBamSummary:
+  binSize: "1000"
+
+computeMatrix:
+  binSize   : "1000"
+  upstream  : "3000"
+  downstream: "3000"
+
+plotCorrelation:
+  corMethod : "pearson"            # Can be replaced by spearman
+  whatToPlot: "heatmap"            # Can be replaced by scatterplot
+  color     : "PuBuGn"             # see [here](https://matplotlib.org/examples/color/colormaps_reference.html) for alternative colors
+
+plotHeatmap:
+  kmeans    : "1"
+  color     : "PuBuGn"
+  plot      : "plot, heatmap and colorbar"    # Others options are : “plot and heatmap”, “heatmap only” and “heatmap and colorbar”
+
+
+plotFingerprint:
+    EXTENDREADS: '200'
+    binSize: "1000"
+
+plotProfile:
+    kmeans : "1"                  # choose the number of kmeans to compute
+    startLabel : "TSS"            # default is TSS but could be anything, like "peak start"
+    endLabel : "TES"              # TES is default but can be changed like for startLabel
