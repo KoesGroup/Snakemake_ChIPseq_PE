@@ -22,7 +22,7 @@ rule trimmomatic:
         phred = 		            str(config["trimmomatic"]["phred"])
     threads: 10
     conda:
-        "../envs/trimmomatic_env.yaml"
+        "../envs/trimmomatic.yaml"
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
         "{input.reads} "
@@ -50,7 +50,7 @@ rule fastqc:
     message:
         "---Quality check of trimmed {wildcards.sample} sample with FASTQC"
     conda:
-        "../envs/fastqc_env.yaml"
+        "../envs/fastqc.yaml"
     shell:
         "fastqc --outdir={params} {input.fwd} {input.rev} &>{log}"
 
@@ -66,7 +66,7 @@ rule index:
         WORKING_DIR + "genome"
     threads: 10
     conda:
-        "../envs/samtools_bowtie_env.yaml"
+        "../envs/samtools_bowtie.yaml"
     shell:"bowtie2-build --threads {threads} {input} {params}"
 
 rule align:
@@ -88,7 +88,7 @@ rule align:
         unmapped        = WORKING_DIR + "unmapped/{sample}.fq.gz"
     threads: 10
     conda:
-        "../envs/samtools_bowtie_env.yaml"
+        "../envs/samtools_bowtie.yaml"
     log:
         RESULT_DIR + "logs/bowtie/{sample}.log"
     shell:
