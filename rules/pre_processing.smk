@@ -61,7 +61,7 @@ rule trimmomatic_pe:
         adapters =                  config["adapters"]
     threads: 10
     conda:
-        "../envs/trimmomatic_env.yaml"
+        "../envs/trimmomatic.yaml"
     shell:
         "trimmomatic PE {params.phred} -threads {threads} "
         "{input} "
