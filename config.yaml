@@ -70,7 +70,6 @@ bamcompare:
   ignoreForNormalization: "SL3.0ch00" #list here space-delimited chromosomes that should be ignored for normalization, sex chromosomes usually.
 
 
-
 # macs2 Parameters:
           # for information over macs2, refer to https://github.com/taoliu/MACS
           # regular peak calling : macs2 callpeak -t ChIP.bam -c Control.bam -f BAM -g hs -n test -B -q 0.01

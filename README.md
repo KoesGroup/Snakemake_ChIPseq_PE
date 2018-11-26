@@ -7,7 +7,9 @@ A snakemake pipeline for the analysis of ChIP-seq data
 # Aim
 Snakemake pipeline made for reproducible analysis of paired-end Illumina ChIP-seq data. The desired output of this pipeline are:
 - fastqc zip and html files
-- bigWig files (including bamCompare rule)
+
+- bigWig files
+
 - bed files
 
 # Content of the repository
