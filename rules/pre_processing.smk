@@ -1,7 +1,7 @@
 rule trimmomatic:
     input:
         reads = get_fastq,
-        adapters = config["adapters"]
+        adapters = config["trimmomatic"]["adapters"]
     output:
         forward_reads   = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
         reverse_reads   = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
