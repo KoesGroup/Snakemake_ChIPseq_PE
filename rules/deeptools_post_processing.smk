@@ -1,6 +1,7 @@
 rule bamCoverage:
     input:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
+        bam = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam",
+        index = RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai"
     output:
         RESULT_DIR + "bigwig/{sample}.bw"
     message:
@@ -17,7 +18,7 @@ rule bamCoverage:
     conda:
         "../envs/deeptools.yaml"
     shell:
-        "bamCoverage --bam {input} \
+        "bamCoverage --bam {input.bam} \
         -o {output} \
         --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} \
         --extendReads {params.EXTENDREADS} \
@@ -29,7 +30,9 @@ rule bamCoverage:
 rule bamcompare:
     input:
         treatment   = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",              #input requires an indexed bam file
-        control     = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"                   #input requires an indexed bam file
+        control     = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam",
+        index_treatment     = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam.bai", treatment = CASES),
+        index_control       = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam.bai", treatment = CONTROLS),                   #input requires an indexed bam file
     output:
         bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw"
     message:
@@ -126,7 +129,7 @@ rule computeMatrix:
     log:
         RESULT_DIR + "logs/deeptools/computematrix/{treatment}_{control}.log"
     message:
-        "Computing matrix for {input.bigwig} with {params.binSize} bp windows and {params.upstream} bp around TSS"        
+        "Computing matrix for {input.bigwig} with {params.binSize} bp windows and {params.upstream} bp around TSS"
     shell:
         "computeMatrix \
         reference-point \
@@ -155,7 +158,7 @@ rule plotHeatmap:
     log:
         RESULT_DIR + "logs/deeptools/plotHeatmap/{treatment}_{control}.log"
     message:
-        "Preparing Heatmaps..."        
+        "Preparing Heatmaps..."
     shell:
         "plotHeatmap \
         --matrixFile {input} \
@@ -168,7 +171,9 @@ rule plotHeatmap:
 rule plotFingerprint:
     input:
         treatment = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam", treatment = CASES),
-        control   = expand(RESULT_DIR + "mapped/{control}.sorted.rmdup.bam", control = CONTROLS)
+        control   = expand(RESULT_DIR + "mapped/{control}.sorted.rmdup.bam", control = CONTROLS),
+        index_treatment     = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam.bai", treatment = CASES),
+        index_control       = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam.bai", treatment = CONTROLS),
     output:
         pdf = RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf"
     params:
@@ -179,7 +184,7 @@ rule plotFingerprint:
     log:
         RESULT_DIR + "logs/deeptools/plotFingerprint/{treatment}_vs_{control}.log"
     message:
-        "Preparing deeptools plotFingerprint"        
+        "Preparing deeptools plotFingerprint"
     shell:
         "plotFingerprint \
         -b {input.treatment} {input.control} \
@@ -202,7 +207,7 @@ rule plotProfile:
     log:
         RESULT_DIR + "logs/deeptools/plotProfile/{treatment}_{control}.log"
     message:
-        "Preparing deeptools plotProfile"        
+        "Preparing deeptools plotProfile"
     shell:
         "plotProfile \
         --matrixFile {input} \

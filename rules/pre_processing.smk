@@ -49,7 +49,7 @@ rule fastqc:
     message:
         "Quality check of trimmed {wildcards.sample} sample with fastp"
     conda:
-        "envs/fastp.yaml"
+        "../envs/fastp.yaml"
     shell:
         "fastp -i {input.fwd} -I {input.rev} -h {output} 2>{log}"
 

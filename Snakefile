@@ -22,8 +22,6 @@ GENOME_FASTA_FILE   = os.path.basename(config["refs"]["genome_url"])
 GFF_URL             = config["refs"]["gff_url"]
 GFF_FILE            = os.path.basename(config["refs"]["gff_url"])
 
-TOTALCORES          = 16                             #check this via 'grep -c processor /proc/cpuinfo'
-
 ###########
 # Container
 ###########
@@ -42,22 +40,9 @@ def get_samples_per_treatment(input_df="units.tsv",colsamples="sample",coltreatm
     filtered_samples = df[colsamples].tolist()
     return filtered_samples
 
-def is_single_end(sample):
-    """This function detect missing value in the column 2 of the units.tsv, it is used by the function get_trimmed_reads to define the samples used by the align rule"""
-    return pd.isnull(units.loc[(sample), "fq2"])
-
-def get_trimmed_reads(wildcards):
-    """Get trimmed reads of a given sample """
-    if not is_single_end(**wildcards):
-        # paired-end sample
-        return expand(WORKING_DIR + "trimmed/{sample}.{group}.fastq.gz",
-                      group=[1, 2], **wildcards)
-    # single end sample
-    return WORKING_DIR + "trimmed/{sample}.fastq.gz".format(**wildcards)
-
-##############
+########################
 # Samples and conditions
-##############
+########################
 
 units = pd.read_table(config["units"], dtype=str).set_index(["sample"], drop=False)
 
@@ -80,13 +65,11 @@ wildcard_constraints:
 wildcard_constraints:
     unit = "L[0-9]+"
 
-##############
+##################
 # Desired output
-##############
+##################
 
 FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}.html", sample=SAMPLES)
-BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=SAMPLES)
-BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=SAMPLES)
 BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
 BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS) #add zip function in the expand to compare respective treatment and control
 BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS)
@@ -105,9 +88,7 @@ MULTIQC         =     RESULT_DIR + "multiqc_report.html"
 ################
 rule all:
     input:
-        BAM_INDEX,
-        BAM_RMDUP,
-        #FASTQC_REPORTS,
+        FASTQC_REPORTS,
         #BEDGRAPH,
         BIGWIG,
         BED_NARROW,
@@ -122,7 +103,7 @@ rule all:
         #MULTIQC
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
-    shell:"#rm -rf {WORKING_DIR}"
+    shell:"rm -rf {WORKING_DIR}"
 
 ###############
 # Rules
