@@ -95,4 +95,5 @@ Optionals outputs of the pipelines are **bamCompare**, **bedgraph** and **bed fi
 # Test run on small fastq test files
 To test this pipeline, you will need Snakemake installed on your local machine. If you have activated the 'chipseq' environment (see above), then Snakemake 5.2.0 is already installed and in use.  
 Simply run 'snakemake --use-conda'
-If the 'singularity' software is available on your machine and you want to use 10 CPUs ('--cores 10'), then run 'snakemake --use-conda --use-singularity --cores 10'
+If the `singularity` software is available on your machine and you want to use 10 CPUs (``--cores 10`), then run `snakemake --use-conda --use-singularity --cores 10`
+s
