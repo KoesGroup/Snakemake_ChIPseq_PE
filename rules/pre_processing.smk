@@ -41,18 +41,18 @@ rule fastqc:
         fwd = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
         rev = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
     output:
-        fwd = RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
-        rev = RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
+        RESULT_DIR + "fastqc/{sample}.html"
     log:
-        RESULT_DIR + "logs/fastqc/{sample}.fastqc.log"
+        RESULT_DIR + "logs/fastqc/{sample}.fastp.log"
     params:
         RESULT_DIR + "fastqc/"
     message:
-        "---Quality check of trimmed {wildcards.sample} sample with FASTQC"
+        "Quality check of trimmed {wildcards.sample} sample with fastp"
     conda:
-        "../envs/fastqc.yaml"
+        "envs/fastp.yaml"
     shell:
-        "fastqc --outdir={params} {input.fwd} {input.rev} &>{log}"
+        "fastp -i {input.fwd} -I {input.rev} -h {output} 2>{log}"
+
 
 rule index:
     input:
@@ -91,8 +91,8 @@ rule align:
         RESULT_DIR + "logs/bowtie/{sample}.log"
     shell:
         """
-        bowtie2 {params.bowtie} --threads {threads} -x {params.index} -1 {input.forward} -2 {input.reverse} -U {input.forwardUnpaired},{input.reverseUnpaired} --un-conc-gz {params.unmapped} | samtools view -Sb - > {output.mapped} 2>{log} 
-        """    
+        bowtie2 {params.bowtie} --threads {threads} -x {params.index} -1 {input.forward} -2 {input.reverse} -U {input.forwardUnpaired},{input.reverseUnpaired} --un-conc-gz {params.unmapped} | samtools view -Sb - > {output.mapped} 2>{log}
+        """
 
 rule sort:
     input:

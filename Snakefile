@@ -24,6 +24,11 @@ GFF_FILE            = os.path.basename(config["refs"]["gff_url"])
 
 TOTALCORES          = 16                             #check this via 'grep -c processor /proc/cpuinfo'
 
+###########
+# Container
+###########
+singularity: "shub://truatpasteurdotfr/singularity-docker-miniconda"
+
 ###############
 # Helper Functions
 ###############
@@ -79,7 +84,7 @@ wildcard_constraints:
 # Desired output
 ##############
 
-FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}.fastqc.html", sample=SAMPLES)
+FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}.html", sample=SAMPLES)
 BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=SAMPLES)
 BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=SAMPLES)
 BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
