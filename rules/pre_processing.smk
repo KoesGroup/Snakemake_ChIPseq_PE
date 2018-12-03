@@ -94,6 +94,7 @@ rule align:
         bowtie2 {params.bowtie} --threads {threads} -x {params.index} -1 {input.forward} -2 {input.reverse} -U {input.forwardUnpaired},{input.reverseUnpaired} --un-conc-gz {params.unmapped} | samtools view -Sb - > {output.mapped} 2>{log}
         """
 
+
 rule sort:
     input:
         WORKING_DIR + "mapped/{sample}.bam"
@@ -123,20 +124,3 @@ rule rmdup:
         samtools rmdup {input} {output.bam} &>{log}
         samtools index {output.bam}
         """
-        #samtools manual says "This command is obsolete. Use markdup instead
-
-# rule bedgraph:
-#     input:
-#         RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
-#     output:
-#         RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph"
-#     params:
-#         genome = WORKING_DIR + "genome"
-#     message:
-#         "Creation of {wildcards.sample} bedgraph file"
-#     log:
-#         RESULT_DIR + "logs/deeptools/{sample}.sorted.rmdup.bedgraph.log"
-#     conda:
-#         "../envs/bedtools_env.yaml"
-#     shell:
-#         "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
