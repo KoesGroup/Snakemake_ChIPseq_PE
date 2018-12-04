@@ -39,7 +39,18 @@ The Snakefile will then take care of installing and loading the packages and sof
 
 ## Configuration file
 
-The `~/configs/config_tomato_sub.yaml` file specifies the sample list, the genomic reference fasta file to use, the directories to use, etc. This file is then used to build parameters in the main `Snakefile`.
+The `config.yaml` file specifies custom options for Snakemake:
+- sample information 'units: units.tsv' indicates where to find the sample names, paired-end fastq files and their status (control or treatments)
+- the directories:
+  - 'working_dir': a temporary directory that can be removed after the run
+  - 'result_dir': a directory that contains the desired output files at the end of the run
+- the link to the genomic references 'refs' that you want to use
+- parameters for various softwares:
+  - trimmomatic
+  - bowtie2
+  - etc.
+
+This configuration file is then used to build parameters in the main `Snakefile`.
 
 ## Snakemake execution
 
@@ -56,7 +67,7 @@ Use the command `snakemake -np` to perform a dry run that prints out the rules a
 
 ## Real run
 
-Simply type `Snakemake --use-conda` and provide the number of cores with `--cores 10` for ten cores for instance.
+Simply type `Snakemake --use-conda --use-singularity` and provide the number of cores with `--cores 10` for ten cores for instance.
 For cluster execution, please refer to the [Snakemake reference](https://snakemake.readthedocs.io/en/stable/executable.html#cluster-execution).
 Please pay attention to `--use-conda`, it is required for the installation and loading of the dependencies used by the rules of the pipeline.
 To run the pipeline, from the folder containing the Snakefile run the
@@ -80,3 +91,7 @@ The main output are :
 - **plotProfile** folder contain pdf files displaying profile plot for scores over sets of genomic region, again the genomic region are define in the matrix made previously. Again there are many options to change the plot and more information can be found [here](https://deeptools.readthedocs.io/en/develop/content/tools/plotProfile.html)
 
 Optionals outputs of the pipelines are **bamCompare**, **bedgraph** and **bed files for broad peaks calling**.
+
+# Test run on small fastq test files
+To test this pipeline, you will need Snakemake installed on your local machine. If you have activated the 'chipseq' environment (see above), then Snakemake 5.2.0 is already installed and in use.    
+If the `singularity` software is available on your machine and you want to use 10 CPUs (`--cores 10`), then run `snakemake --use-conda --use-singularity --cores 10`
