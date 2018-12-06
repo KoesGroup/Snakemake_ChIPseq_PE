@@ -8,7 +8,7 @@ A snakemake pipeline for the analysis of paired-end Illumina ChIP-seq data.
 
 Snakemake pipeline made for reproducible analysis of paired-end Illumina ChIP-seq data. The desired output of this pipeline are:
 
-- Quality controls files to check for the quality of the reads. Reads are processed by programs such as fastqc and deeptools in order to produce graph that are easily readable and inform quickly about the quality of the experiment.
+- Quality controls files to check for the quality of the reads. Reads are processed by programs such as fastp and deeptools in order to produce graph that are easily readable and inform quickly about the quality of the experiment.
 
 - Portable visualization files `bigwig files`, these files have a `.bw` extension and are relatively small (compared to sam and bam files). There are used to visualize the read coverage over a genome and can be simply be drag and drop in a genome viewer such as [IGV](http://software.broadinstitute.org/software/igv/), [JBrowse](https://jbrowse.org) or [UCSC](https://genome.ucsc.edu).
 
