@@ -14,12 +14,18 @@ from snakemake.utils import validate, min_version
 
 configfile: "config.yaml"
 
-WORKING_DIR         = config["temp_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
+WORKING_DIR         = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
 RESULT_DIR          = config["result_dir"]      # what you want to keep
 
 GENOME_FASTA_URL    = config["refs"]["genome_url"]
 GENOME_FASTA_FILE   = os.path.basename(config["refs"]["genome_url"])
-TOTALCORES          = config["cores"] 
+GFF_URL             = config["refs"]["gff_url"]
+GFF_FILE            = os.path.basename(config["refs"]["gff_url"])
+
+###########
+# Container
+###########
+singularity: "shub://truatpasteurdotfr/singularity-docker-miniconda"
 
 ###############
 # Helper Functions
@@ -34,9 +40,9 @@ def get_samples_per_treatment(input_df="units.tsv",colsamples="sample",coltreatm
     filtered_samples = df[colsamples].tolist()
     return filtered_samples
 
-##############
+########################
 # Samples and conditions
-##############
+########################
 
 units = pd.read_table(config["units"], dtype=str).set_index(["sample"], drop=False)
 
@@ -44,6 +50,11 @@ SAMPLES = units.index.get_level_values('sample').unique().tolist()
 
 CASES = get_samples_per_treatment(treatment="treatment")
 CONTROLS = get_samples_per_treatment(treatment="control")
+
+GROUPS = {
+    "group1" : ["ChIP1", "ChIP2", "ChIP3"],
+    "group2" : ["ChIP4", "ChIP5", "ChIP6"]
+}                                           #I used this dictionnary to define the group of sample used in the multiBamSummary, might be improved a lot
 
 ##############
 # Wildcards
@@ -54,17 +65,23 @@ wildcard_constraints:
 wildcard_constraints:
     unit = "L[0-9]+"
 
-##############
+##################
 # Desired output
-##############
+##################
 
-FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"})
-BAM_INDEX       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=SAMPLES)
-BAM_RMDUP       =     expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=SAMPLES)
+FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}.html", sample=SAMPLES)
 BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
 BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS) #add zip function in the expand to compare respective treatment and control
 BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS)
 BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak", zip, treatment = CASES, control = CONTROLS)
+MULTIBAMSUMMARY =     RESULT_DIR + "multiBamSummary/MATRIX.npz"
+PLOTCORRELATION =     RESULT_DIR + "plotCorrelation/MATRIX.png"
+COMPUTEMATRIX   =     expand(RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz", treatment = CASES, control = CONTROLS)
+HEATMAP         =     expand(RESULT_DIR + "heatmap/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
+PLOTFINGERPRINT =     expand(RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf", zip, treatment = CASES, control = CONTROLS)
+PLOTPROFILE_PDF =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
+PLOTPROFILE_BED =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.bed", treatment = CASES, control = CONTROLS)
+MULTIQC         =     RESULT_DIR + "multiqc_report.html"
 
 ###############
 # Final output
@@ -72,9 +89,18 @@ BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.br
 rule all:
     input:
         FASTQC_REPORTS,
+        #BEDGRAPH,
         BIGWIG,
         BED_NARROW,
-        BED_BROAD
+        #BED_BROAD
+        MULTIBAMSUMMARY,
+        PLOTCORRELATION,
+        COMPUTEMATRIX,
+        HEATMAP,
+        PLOTFINGERPRINT,
+        PLOTPROFILE_PDF,
+        PLOTPROFILE_BED,
+        #MULTIQC
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"rm -rf {WORKING_DIR}"
@@ -82,251 +108,22 @@ rule all:
 ###############
 # Rules
 ###############
-rule get_genome_fasta:
-    output:
-        WORKING_DIR + "genome.fasta"
-    message:"downloading {GENOME_FASTA_FILE} genomic fasta file"
-    conda: 
-        "envs/wget.yaml"
-    shell: "wget -O {output} {GENOME_FASTA_URL}"
 
-rule trimmomatic:
-    input:
-        reads = get_fastq,
-        adapters = config["trimmomatic"]["adapters"]
-    output:
-        forward_reads   = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse_reads   = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
-        forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz"),
-        reverseUnpaired = temp(WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz")
-    message: "trimming {wildcards.sample} reads"
-    log:
-        RESULT_DIR + "logs/trimmomatic/{sample}.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.trimmomatic.benchmark.txt"
-    params :
-        seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
-        palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
-        simpleClipThreshhold =      str(config['trimmomatic']['simpleClipThreshold']),
-        LeadMinTrimQual =           str(config['trimmomatic']['LeadMinTrimQual']),
-        TrailMinTrimQual =          str(config['trimmomatic']['TrailMinTrimQual']),
-        windowSize =                str(config['trimmomatic']['windowSize']),
-        avgMinQual =                str(config['trimmomatic']['avgMinQual']),
-        minReadLen =                str(config['trimmomatic']['minReadLength']),
-        phred = 		            str(config["trimmomatic"]["phred"])
-    threads: 10
-    conda:
-        "envs/trimmomatic.yaml"
-    shell:
-        "trimmomatic PE {params.phred} -threads {threads} "
-        "{input.reads} "
-        "{output.forward_reads} "
-        "{output.forwardUnpaired} "
-        "{output.reverse_reads} "
-        "{output.reverseUnpaired} "
-        "ILLUMINACLIP:{input.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
-        "LEADING:{params.LeadMinTrimQual} "
-        "TRAILING:{params.TrailMinTrimQual} "
-        "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
-        "MINLEN:{params.minReadLen} &>{log}"
+include : "rules/external_data.smk"
+include : 'rules/pre_processing.smk'
+include : "rules/macs2_peak_calling.smk"
+include : "rules/deeptools_post_processing.smk"
 
-rule fastqc:
+
+rule multiqc:
     input:
-        fwd = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        rev = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
+        expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"}),
+        expand(RESULT_DIR + "bed/{sample}_peaks.xls", sample= SAMPLES)
     output:
-        fwd = RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
-        rev = RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
-    log:
-        RESULT_DIR + "logs/fastqc/{sample}.fastqc.log"
+        "qc/multiqc.html"
     params:
-        RESULT_DIR + "fastqc/"
-    message:
-        "---Quality check of trimmed {wildcards.sample} sample with FASTQC"
-    conda:
-        "envs/fastqc.yaml"
-    shell:
-        "fastqc --outdir={params} {input.fwd} {input.rev} &>{log}"
-
-rule index:
-    input:
-        WORKING_DIR + "genome.fasta"
-    output:
-        [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)],
-        WORKING_DIR + "genome.rev.1.bt2",
-        WORKING_DIR + "genome.rev.2.bt2"
-    message:"indexing genome"
-    params:
-        WORKING_DIR + "genome"
-    benchmark:
-        RESULT_DIR + "benchmarks/genome.index.benchmark.txt"
-    threads: 10
-    conda:
-        "envs/bowtie2.yaml"
-    shell:"bowtie2-build --threads {threads} {input} {params}"
-
-rule align:
-    input:
-        forward         = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse         = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
-        forwardUnpaired = WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz",
-        reverseUnpaired = WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz",
-        index           = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
-    output:
-        temp(WORKING_DIR + "mapped/{sample}.bam")
-    message: "Mapping files {wildcards.sample}"
-    params:
-        bowtie          = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
-        index           = WORKING_DIR + "genome"
-    threads: 10
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.align.benchmark.txt"
-    conda:
-        "envs/samtools_bowtie.yaml"
-    shell:
-        "bowtie2 {params.bowtie} "
-        "--threads {threads} "
-        "-x {params.index} "
-        "-1 {input.forward} -2 {input.reverse} "
-        "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming
-        "| samtools view -Sb - > {output}"                       # to get the output as a BAM file directly
-
-rule sort:
-    input:
-        WORKING_DIR + "mapped/{sample}.bam"
-    output:
-        temp(RESULT_DIR + "mapped/{sample}.sorted.bam")
-    message:"sorting {wildcards.sample} bam file"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.sort.benchmark.txt"
-    threads: 10
+        ""  # Optional: extra parameters for multiqc.
     log:
-        RESULT_DIR + "logs/samtools/{sample}.sort.log"
-    conda:
-        "envs/samtools.yaml"
-    shell:"samtools sort -@ {threads} -o {output} {input} &>{log}"
-
-rule rmdup:
-    input:
-        RESULT_DIR + "mapped/{sample}.sorted.bam"
-    output:
-        bam = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"),
-        bai = temp(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai")        #bai files required for the bigwig and bamCompare rules
-    message: "Removing duplicate from file {wildcards.sample} using samtools rmdup"
-    log:
-        RESULT_DIR + "logs/samtools/{sample}.sorted.rmdup.bam.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.rmdup.benchmark.txt"
-    conda:
-        "envs/samtools.yaml"
-    shell:
-        """
-        samtools rmdup {input} {output.bam} &>{log}
-        samtools index {output.bam}
-        """
-
-rule bedgraph:
-    input:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
-    output:
-        RESULT_DIR + "bedgraph/{sample}.sorted.rmdup.bedgraph"
-    params:
-        genome = WORKING_DIR + "genome"
-    message:
-        "Creation of {wildcards.sample} bedgraph file"
-    log:
-        RESULT_DIR + "logs/deeptools/{sample}.sorted.rmdup.bedgraph.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
-    conda:
-        "envs/bedtools.yaml"
-    shell:
-        "bedtools genomecov -bg -ibam {input} -g {params.genome} > {output}"
-
-rule bigwig:
-    input:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
-    output:
-        RESULT_DIR + "bigwig/{sample}.bw"
-    message:
-        "Converting {wildcards.sample} bam into bigwig file"
-    log:
-        RESULT_DIR + "logs/deeptools/{sample}_bamtobigwig.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{sample}.bedgraph.benchmark.txt"
-    params:
-        EFFECTIVEGENOMESIZE = str(config["bamCoverage"]["params"]["EFFECTIVEGENOMESIZE"]), #take argument separated as a list separated with a space
-        EXTENDREADS         = str(config["bamCoverage"]["params"]["EXTENDREADS"])
-    conda:
-        "envs/deeptools.yaml"
-    shell:
-        "samtools index {input};"
-        "bamCoverage --bam {input} -o {output} --effectiveGenomeSize {params.EFFECTIVEGENOMESIZE} --extendReads {params.EXTENDREADS} 2>{log}"
-
-
-rule bamcompare:
-    input:
-        treatment   = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",              #input requires an indexed bam file
-        control     = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"                   #input requires an indexed bam file
-    output:
-        bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw"
-    message:
-        "Running bamCompare for {wildcards.treatment} and {wildcards.control}"
-    log:
-        RESULT_DIR + "logs/deeptools/log2_{treatment}_{control}.bamcompare.bw.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{treatment}_{control}.bamcompare.benchmark.txt"
-    conda:
-        "envs/deeptools.yaml"
-    shell:
-        "bamCompare -b1 {input.treatment} -b2 {input.control} -o {output.bigwig} &>{log}"
-
-rule call_narrow_peaks:
-    input:
-        treatment   = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",
-        control     = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"
-    output:
-        RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak"
-    message:
-        "Calling narrowPeak for {wildcards.treatment} and {wildcards.control}"
-    params:
-        name        = "{treatment}_vs_{control}",        #this option will give the output name, has to be similar to the output
-        format      = str(config['macs2']['format']),
-        genomesize  = str(config['macs2']['genomesize']),
-        qvalue      = str(config['macs2']['qvalue']),
-        outdir      = str(config['macs2']['outdir'])
-    log:
-        RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.narrowPeak.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peaknarrow.benchmark.txt"
-    conda:
-        "envs/macs2.yaml"
-    shell:
-        """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir {params.outdir} &>{log}
-        """
-
-rule call_broad_peaks:
-    input:
-        treatment   = RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam",
-        control     = RESULT_DIR + "mapped/{control}.sorted.rmdup.bam"
-    output:
-        RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak"
-    message:
-        "Calling broadPeak for {wildcards.treatment} and {wildcards.control}"
-    params:
-        name        = "{treatment}_vs_{control}",
-        format      = str(config['macs2']['format']),
-        genomesize  = str(config['macs2']['genomesize']),
-        qvalue      = str(config['macs2']['qvalue']),
-        outdir      = str(config['macs2']['outdir'])
-    log:
-        RESULT_DIR + "logs/macs2/{treatment}_vs_{control}_peaks.broadPeak.log"
-    benchmark:
-        RESULT_DIR + "benchmarks/{treatment}_vs_{control}.peakbroad.benchmark.txt"
-    conda:
-        "envs/macs2.yaml"
-    shell:
-        """
-        macs2 callpeak -t {input.treatment} -c {input.control} {params.format} --broad --broad-cutoff 0.1 {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir {params.outdir} &>{log}
-        """
+        "logs/multiqc.log"
+    wrapper:
+        "0.27.1/bio/multiqc"
