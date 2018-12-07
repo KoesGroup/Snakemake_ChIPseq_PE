@@ -3,6 +3,9 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥5.2.0-brightgreen.svg)](https://snakemake.bitbucket.io)
 [![Miniconda](https://img.shields.io/badge/miniconda-blue.svg)](https://conda.io/miniconda)
 
+
+[![DOI](https://zenodo.org/badge/141444770.svg)](https://zenodo.org/badge/latestdoi/141444770)
+
 # Aim
 
 Snakemake pipeline made for reproducible analysis of paired-end Illumina ChIP-seq data. The desired output of this pipeline are:
