@@ -76,10 +76,7 @@ Use the command `snakemake -np` after activating the `chipseq environment` to pe
 
 **Within** the folder containing the **Snakefile** (if unchanged `Snakemake_ChIPseq_PE/`, simply type `Snakemake --use-conda --use-singularity` and provide the number of cores with `--cores 10` for ten cores for instance.
 
-For cluster execution, please refer to the [Snakemake reference](https://snakemake.readthedocs.io/en/stable/executable.html#cluster-execution).
-
 Please pay attention to `--use-conda`, it is required for the installation and loading of the dependencies used by the rules of the pipeline.
-
 
 # Main outputs
 
