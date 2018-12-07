@@ -26,7 +26,7 @@ Informations about the output of the pipeline can be found in the part **Main ou
 
 - **Fastq/**, folder containing subsetted paired-end fastq files used to test locally the pipeline. Generated using [Seqtk](https://github.com/lh3/seqtk): `seqtk sample -s100 read1.fq 5000 > sub1.fqseqtk sample -s100 read2.fq 5000 > sub2.fq`. RAW fastq or fastq.gz files should be placed here before running the pipeline.
 
-- **envs/**, folder containing the environment needed for the Snakefile to run. To use Snakemake, it is required to create and activate an environment containing snakemake (here : envs/global_env.yaml ). The **Snakefile** will load the required environment for each rules automatically, no modification is required here only if a rule is added.
+- **envs/**, folder containing the environment needed for the Snakefile to run. To use Snakemake, it is required to create and activate an environment containing snakemake (here : `envs/global_env.yaml`). The **Snakefile** will load the required environment for each rules automatically, no modification is required here only if a rule is added.
 
 - **units.tsv**, is a *tab separated value files* containing information about the experiment name, the condition of the experiment (control or treatment) and the path to the fastq files relative to the **Snakefile**. **Change this file according to your samples.**
 
