@@ -1,3 +1,13 @@
 fastq/
 .snakemake/
 results/
+*.DS_Store
+*.pdf
+*.bt2
+*.gz
+*.bw
+*.fasta
+*.ipynb
+*.xlsx
+*.html
+*txt

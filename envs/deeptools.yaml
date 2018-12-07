@@ -1,0 +1,5 @@
+channels:
+  - bioconda
+dependencies:
+  - deeptools=3.1.2
+  - samtools=1.9

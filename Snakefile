@@ -1,174 +1,129 @@
-# Snakemake file for ChIP-Seq analysis
+# Snakemake file for ChIP-Seq PE analysis
+# The pipeline runs with the command "snakemake --use-conda [--core] ", within the folder containing the Snakefile, after activation of the global_env.yaml
 
 ###############
 # Libraries
 ###############
+
 import os
+import pandas as pd
+from snakemake.utils import validate, min_version
+#############################################
+# Configuration and sample sheets
+#############################################
+
+configfile: "config.yaml"
+
+WORKING_DIR         = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
+RESULT_DIR          = config["result_dir"]      # what you want to keep
+
+GENOME_FASTA_URL    = config["refs"]["genome_url"]
+GENOME_FASTA_FILE   = os.path.basename(config["refs"]["genome_url"])
+GFF_URL             = config["refs"]["gff_url"]
+GFF_FILE            = os.path.basename(config["refs"]["gff_url"])
+
+###########
+# Container
+###########
+singularity: "shub://truatpasteurdotfr/singularity-docker-miniconda"
 
 ###############
-# Configuration
+# Helper Functions
 ###############
-configfile: "configs/config_tomato_sub.yaml"
+def get_fastq(wildcards):
+    return units.loc[(wildcards.sample), ["fq1", "fq2"]].dropna()
 
-FASTQ_DIR = config["fastq_dir"]        # where to find the fastq files
-WORKING_DIR = config["working_dir"]    # where you want to store your intermediate files (this directory will be cleaned up at the end)
-RESULT_DIR = config["result_dir"]      # what you want to keep
+def get_samples_per_treatment(input_df="units.tsv",colsamples="sample",coltreatment="condition",treatment="control"):
+    """This function returns a list of samples that correspond to the same experimental condition"""
+    df = pd.read_table(input_df)
+    df = df.loc[df[coltreatment] == treatment]
+    filtered_samples = df[colsamples].tolist()
+    return filtered_samples
 
-GENOME_FASTA_URL = config["refs"]["genome_url"]
-GENOME_FASTA_FILE = os.path.basename(config["refs"]["genome_url"])
+########################
+# Samples and conditions
+########################
+
+units = pd.read_table(config["units"], dtype=str).set_index(["sample"], drop=False)
+
+SAMPLES = units.index.get_level_values('sample').unique().tolist()
+
+CASES = get_samples_per_treatment(treatment="treatment")
+CONTROLS = get_samples_per_treatment(treatment="control")
+
+GROUPS = {
+    "group1" : ["ChIP1", "ChIP2", "ChIP3"],
+    "group2" : ["ChIP4", "ChIP5", "ChIP6"]
+}                                           #I used this dictionnary to define the group of sample used in the multiBamSummary, might be improved a lot
 
 ##############
 # Wildcards
 ##############
 wildcard_constraints:
+    sample = "[A-Za-z0-9]+"
 
-sample="[A-Za-z0-9]+"
+wildcard_constraints:
+    unit = "L[0-9]+"
 
-##############
+##################
 # Desired output
-##############
-BAM_INDEX = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai", sample=config["samples"])
-BAM_RMDUP = expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample=config["samples"])
-FASTQC_REPORTS = expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=config["samples"], pair={"forward", "reverse"})
+##################
 
-################
+FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}.html", sample=SAMPLES)
+BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
+BAM_COMPARE     =     expand(RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw", zip, treatment = CASES, control = CONTROLS) #add zip function in the expand to compare respective treatment and control
+BED_NARROW      =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.narrowPeak", zip, treatment = CASES, control = CONTROLS)
+BED_BROAD       =     expand(RESULT_DIR + "bed/{treatment}_vs_{control}_peaks.broadPeak", zip, treatment = CASES, control = CONTROLS)
+MULTIBAMSUMMARY =     RESULT_DIR + "multiBamSummary/MATRIX.npz"
+PLOTCORRELATION =     RESULT_DIR + "plotCorrelation/MATRIX.png"
+COMPUTEMATRIX   =     expand(RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz", treatment = CASES, control = CONTROLS)
+HEATMAP         =     expand(RESULT_DIR + "heatmap/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
+PLOTFINGERPRINT =     expand(RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf", zip, treatment = CASES, control = CONTROLS)
+PLOTPROFILE_PDF =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.pdf", treatment = CASES, control = CONTROLS)
+PLOTPROFILE_BED =     expand(RESULT_DIR + "plotProfile/{treatment}_{control}.bed", treatment = CASES, control = CONTROLS)
+MULTIQC         =     RESULT_DIR + "multiqc_report.html"
+
+###############
 # Final output
 ################
 rule all:
     input:
-        BAM_INDEX,
-        BAM_RMDUP,
-        FASTQC_REPORTS
+        FASTQC_REPORTS,
+        #BEDGRAPH,
+        BIGWIG,
+        BED_NARROW,
+        #BED_BROAD
+        MULTIBAMSUMMARY,
+        PLOTCORRELATION,
+        COMPUTEMATRIX,
+        HEATMAP,
+        PLOTFINGERPRINT,
+        PLOTPROFILE_PDF,
+        PLOTPROFILE_BED,
+        #MULTIQC
     message: "ChIP-seq pipeline succesfully run."		#finger crossed to see this message!
 
     shell:"rm -rf {WORKING_DIR}"
 
-
 ###############
 # Rules
 ###############
-rule get_genome_fasta:
-    output:
-        WORKING_DIR + "genome.fasta"
-    message:"downloading {GENOME_FASTA_FILE} genomic fasta file"
-    shell: "wget -O {output} {GENOME_FASTA_URL}"
 
-rule trimmomatic:
+include : "rules/external_data.smk"
+include : 'rules/pre_processing.smk'
+include : "rules/macs2_peak_calling.smk"
+include : "rules/deeptools_post_processing.smk"
+
+
+rule multiqc:
     input:
-        #forward = FASTQ_DIR + "{sample}_1.fastq.gz",
-	#reverse = FASTQ_DIR + "{sample}_2.fastq.gz",
-	#12/08/18 JC : commented out lines 48,49, it makes more sense for me to call sample with the wildcards
-        forward_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["forward"],
-        reverse_reads = lambda wildcards: FASTQ_DIR + config["samples"][wildcards.sample]["reverse"],
-        adapters = config["adapters"]
+        expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"}),
+        expand(RESULT_DIR + "bed/{sample}_peaks.xls", sample= SAMPLES)
     output:
-        forward_reads = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse_reads = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
-        forwardUnpaired = temp(WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz"),
-        reverseUnpaired = temp(WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz")
-    message: "trimming {wildcards.sample} reads"
+        "qc/multiqc.html"
+    params:
+        ""  # Optional: extra parameters for multiqc.
     log:
-        RESULT_DIR + "logs/trimmomatic/{sample}.log"
-    params :
-        seedMisMatches =            str(config['trimmomatic']['seedMisMatches']),
-        palindromeClipTreshold =    str(config['trimmomatic']['palindromeClipTreshold']),
-        simpleClipThreshhold =      str(config['trimmomatic']['simpleClipThreshold']),
-        LeadMinTrimQual =           str(config['trimmomatic']['LeadMinTrimQual']),
-        TrailMinTrimQual =          str(config['trimmomatic']['TrailMinTrimQual']),
-        windowSize =                str(config['trimmomatic']['windowSize']),
-        avgMinQual =                str(config['trimmomatic']['avgMinQual']),
-        minReadLen =                str(config['trimmomatic']['minReadLength']),
-        phred = 		            str(config["trimmomatic"]["phred"])
-    threads: 10
-    shell:
-        "trimmomatic PE {params.phred} -threads {threads} "
-        "{input.forward_reads} "
-        "{input.reverse_reads} "
-        "{output.forward_reads} "
-        "{output.forwardUnpaired} "
-        "{output.reverse_reads} "
-        "{output.reverseUnpaired} "
-        "ILLUMINACLIP:{input.adapters}:{params.seedMisMatches}:{params.palindromeClipTreshold}:{params.simpleClipThreshhold} "
-        "LEADING:{params.LeadMinTrimQual} "
-        "TRAILING:{params.TrailMinTrimQual} "
-        "SLIDINGWINDOW:{params.windowSize}:{params.avgMinQual} "
-        "MINLEN:{params.minReadLen} 2>{log}"
-
-rule fastqc:
-    input:
-        fwd=WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        rev=WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz"
-    output:
-        fwd=RESULT_DIR + "fastqc/{sample}_forward_fastqc.zip",
-        rev=RESULT_DIR + "fastqc/{sample}_reverse_fastqc.zip"
-    log:
-        RESULT_DIR + "logs/fastqc/{sample}.fastqc.log"
-    params:
-        RESULT_DIR + "fastqc/"
-    message:
-        "---Quality check of trimmed {wildcards.sample} sample with FASTQC" 		#removed, it was not working
-    shell:
-        "fastqc --outdir={params} {input.fwd} {input.rev}"
-
-
-rule index:
-    input:
-        WORKING_DIR + "genome.fasta"
-    output:
-        [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)],
-        WORKING_DIR + "genome.rev.1.bt2",
-        WORKING_DIR + "genome.rev.2.bt2"
-    message:"indexing genome"
-    params:
-        WORKING_DIR + "genome"
-    threads: 10
-    shell:"bowtie2-build --threads {threads} {input} {params}"
-
-rule align:
-    input:
-        forward = WORKING_DIR + "trimmed/{sample}_forward.fastq.gz",
-        reverse = WORKING_DIR + "trimmed/{sample}_reverse.fastq.gz",
-        forwardUnpaired = WORKING_DIR + "trimmed/{sample}_forward_unpaired.fastq.gz",
-        reverseUnpaired = WORKING_DIR + "trimmed/{sample}_reverse_unpaired.fastq.gz",
-        index = [WORKING_DIR + "genome." + str(i) + ".bt2" for i in range(1,5)]
-    output:
-        temp(WORKING_DIR + "mapped/{sample}.bam")
-    message: "Mapping files"
-    params:
-        bowtie = " ".join(config["bowtie2"]["params"].values()), #take argument separated as a list separated with a space
-        index = WORKING_DIR + "genome"
-    threads: 10
-    shell:
-        "bowtie2 {params.bowtie} "
-        "--threads {threads} "
-        "-x {params.index} "
-        "-1 {input.forward} -2 {input.reverse} "
-        "-U {input.forwardUnpaired},{input.reverseUnpaired} "   # also takes the reads unpaired due to trimming
-        "| samtools view -Sb - > {output}"                       # to get the output as a BAM file directly
-
-rule sort:
-    input:
-        WORKING_DIR + "mapped/{sample}.bam"
-    output:
-        RESULT_DIR + "mapped/{sample}.sorted.bam"
-    message:"sorting {wildcards.sample} bam file"
-    threads: 10
-    shell:"samtools sort -@ {threads} -o {output} {input}"
-
-rule rmdup:
-    input:
-        RESULT_DIR + "mapped/{sample}.sorted.bam"
-    output:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
-    message: "Removing duplicate from file {input}"
-    shell:
-        "samtools rmdup {input} {output}"                       #samtools manual says "This command is obsolete. Use markdup instead."
-
-rule bam_index:
-    input:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
-    output:
-        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam.bai"
-    message: "Indexing {wildcards.sample} for rapid access"
-    shell:
-        "samtools index {input}"
+        "logs/multiqc.log"
+    wrapper:
+        "0.27.1/bio/multiqc"
