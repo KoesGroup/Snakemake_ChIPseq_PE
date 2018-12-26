@@ -73,7 +73,7 @@ rule multiBamSummary:
         binSize     = str(config['multiBamSummary']['binSize'])
     log:
         RESULT_DIR + "logs/deeptools/multibamsummary/MATRIX.log"
-    conda: 
+    conda:
         "../envs/deeptools.yaml"
     shell:
         "multiBamSummary bins \
@@ -114,32 +114,56 @@ rule plotCorrelation:
 
 #--plotTitle 'Pearson Correlation of {params.title} coverage' \
 
-
-rule computeMatrix:
+rule computeMatrix_ref:
     input:
-        bigwig = RESULT_DIR + "bamcompare/log2_{treatment}_{control}.bamcompare.bw",
+        bigwig = RESULT_DIR + "bigwig/{sample}.bw",
         bed    = WORKING_DIR + "gene_model.gtf"
     output:
-        RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
+        RESULT_DIR + "computematrix/{sample}.TSS.gz"
     threads: 10
     params:
         binSize = str(config['computeMatrix']['binSize']),
-        upstream    = str(config['computeMatrix']['upstream']),
-        downstream = str(config['computeMatrix']['downstream'])
+        afterRegion = str(config['computeMatrix']['afterRegion']),
+        beforeRegion= str(config['computeMatrix']['beforeRegion'])
     conda:
         "../envs/deeptools.yaml"
     log:
-        RESULT_DIR + "logs/deeptools/computematrix/{treatment}_{control}.log"
-    message:
-        "Computing matrix for {input.bigwig} with {params.binSize} bp windows and {params.upstream} bp around TSS"
+        RESULT_DIR + "logs/deeptools/computematrix/{sample}.log"
     shell:
         "computeMatrix \
         reference-point \
         --referencePoint TSS \
         -S {input.bigwig} \
         -R {input.bed} \
-        --afterRegionStartLength {params.upstream} \
-        --beforeRegionStartLength {params.downstream} \
+        --afterRegionStartLength {params.afterRegion} \
+        --beforeRegionStartLength {params.beforeRegion} \
+        --numberOfProcessors {threads} \
+        --binSize {params.binSize} \
+        -o {output} \
+        2> {log}"
+
+rule computeMatrix_scale:
+    input:
+        bigwig = RESULT_DIR + "bigwig/{sample}.bw",
+        bed    = WORKING_DIR + "gene_model.gtf"
+    output:
+        RESULT_DIR + "computematrix/{sample}.scale-regions.gz"
+    threads: 10
+    params:
+        binSize     = str(config['computeMatrix']['binSize']),
+        afterRegion = str(config['computeMatrix']['afterRegion']),
+        beforeRegion= str(config['computeMatrix']['beforeRegion'])
+    conda:
+        "../envs/deeptools.yaml"
+    log:
+        RESULT_DIR + "logs/deeptools/computematrix/{sample}.log"
+    shell:
+        "computeMatrix \
+        scale-regions \
+        -S {input.bigwig} \
+        -R {input.bed} \
+        --afterRegionStartLength {params.afterRegion} \
+        --beforeRegionStartLength {params.beforeRegion} \
         --numberOfProcessors {threads} \
         --binSize {params.binSize} \
         -o {output} \
@@ -147,20 +171,18 @@ rule computeMatrix:
 
 rule plotHeatmap:
     input:
-        RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
+        RESULT_DIR + "computematrix/{sample}.{type}.gz"
     output:
-        RESULT_DIR + "heatmap/{treatment}_{control}.pdf"
+        RESULT_DIR + "heatmap/{sample}.{type}.pdf"
     params:
         kmeans = str(config['plotHeatmap']['kmeans']),
         color  = str(config['plotHeatmap']['color']),
         plot   = str(config['plotHeatmap']['plot']),
-        cluster = "{treatment}_vs_{control}.bed"
+        cluster = RESULT_DIR + "heatmap/{sample}.bed"
     conda:
         "../envs/deeptools.yaml"
     log:
-        RESULT_DIR + "logs/deeptools/plotHeatmap/{treatment}_{control}.log"
-    message:
-        "Preparing Heatmaps..."
+        RESULT_DIR + "logs/deeptools/plotHeatmap/{sample}.{type}.log"
     shell:
         "plotHeatmap \
         --matrixFile {input} \
@@ -168,38 +190,34 @@ rule plotHeatmap:
         --kmeans {params.kmeans} \
         --colorMap {params.color} \
         --legendLocation best \
-        --outFileSortedRegions {params.cluster}"
+        --outFileSortedRegions {params.cluster} \
+        2> {log}"
+
 
 rule plotFingerprint:
     input:
-        treatment = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam", treatment = CASES),
-        control   = expand(RESULT_DIR + "mapped/{control}.sorted.rmdup.bam", control = CONTROLS),
-        index_treatment     = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam.bai", treatment = CASES),
-        index_control       = expand(RESULT_DIR + "mapped/{treatment}.sorted.rmdup.bam.bai", treatment = CONTROLS),
+        expand(RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam", sample = SAMPLES)
     output:
-        pdf = RESULT_DIR + "plotFingerprint/{treatment}_vs_{control}.pdf"
+        pdf = RESULT_DIR + "plotFingerprint/Fingerplot.pdf"
     params:
         EXTENDREADS  = str(config["bamCoverage"]["params"]["EXTENDREADS"]),
         binSize      = str(config['bamCoverage']["params"]['binSize'])
     conda:
         "../envs/deeptools.yaml"
-    log:
-        RESULT_DIR + "logs/deeptools/plotFingerprint/{treatment}_vs_{control}.log"
-    message:
-        "Preparing deeptools plotFingerprint"
     shell:
         "plotFingerprint \
-        -b {input.treatment} {input.control} \
+        -b {input}\
         --extendReads {params.EXTENDREADS} \
         --binSize {params.binSize} \
-        --plotFile {output}"
+        --labels ATAC_1 ATAC_2 ATAC_3 ATAC_4 ATAC_5 ATAC_6 \
+        --plotFile {output} "
 
 rule plotProfile:
     input:
-        RESULT_DIR + "computematrix/{treatment}_{control}.TSS.gz"
+        RESULT_DIR + "computematrix/{sample}.{type}.gz"
     output:
-        pdf = RESULT_DIR + "plotProfile/{treatment}_{control}.pdf",
-        bed = RESULT_DIR + "plotProfile/{treatment}_{control}.bed"
+        pdf = RESULT_DIR + "plotProfile/{sample}.{type}.pdf",
+        bed = RESULT_DIR + "plotProfile/{sample}.{type}.bed"
     params:
         kmeans      = str(config['plotProfile']['kmeans']),
         startLabel  = str(config['plotProfile']['startLabel']),
@@ -207,9 +225,7 @@ rule plotProfile:
     conda:
         "../envs/deeptools.yaml"
     log:
-        RESULT_DIR + "logs/deeptools/plotProfile/{treatment}_{control}.log"
-    message:
-        "Preparing deeptools plotProfile"
+        RESULT_DIR + "logs/deeptools/plotProfile/{sample}.{type}.log"
     shell:
         "plotProfile \
         --matrixFile {input} \
@@ -217,4 +233,5 @@ rule plotProfile:
         --outFileSortedRegions {output.bed} \
         --kmeans {params.kmeans} \
         --startLabel {params.startLabel} \
-        --endLabel {params.endLabel}"
+        --endLabel {params.endLabel} \
+        2> {log}"
