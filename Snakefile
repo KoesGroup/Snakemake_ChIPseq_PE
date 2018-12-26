@@ -69,7 +69,7 @@ wildcard_constraints:
 # Desired output
 ##################
 
-FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"})
+FASTQC_REPORTS  =     expand(RESULT_DIR + "fastqc/{sample}.html", sample=SAMPLES)
 BIGWIG          =     expand(RESULT_DIR + "bigwig/{sample}.bw", sample=SAMPLES)
 BED_NARROW      =     expand(RESULT_DIR + "bed/{sample}_peaks.narrowPeak", sample=SAMPLES)
 MULTIBAMSUMMARY =     RESULT_DIR + "multiBamSummary/MATRIX.npz"
