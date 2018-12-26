@@ -66,27 +66,35 @@ macs2:
 multiBamSummary:
   binSize: "1000"
 
+multiBamSummary:
+  binSize: "10"
+
 computeMatrix:
-  binSize   : "1000"
-  upstream  : "3000"
-  downstream: "3000"
+  binSize   : "10"
+  afterRegion: "1000"
+  beforeRegion: "1000"
 
 plotCorrelation:
   corMethod : "pearson"            # Can be replaced by spearman
   whatToPlot: "heatmap"            # Can be replaced by scatterplot
-  color     : "PuBuGn"             # see [here](https://matplotlib.org/examples/color/colormaps_reference.html) for alternative colors
+  color     : "RdBu"             # see [here](https://matplotlib.org/examples/color/colormaps_reference.html) for alternative colors
 
 plotHeatmap:
   kmeans    : "1"
-  color     : "PuBuGn"
+  color     : "RdBu"
   plot      : "plot, heatmap and colorbar"    # Others options are : “plot and heatmap”, “heatmap only” and “heatmap and colorbar”
 
 
 plotFingerprint:
     EXTENDREADS: '200'
-    binSize: "1000"
+    binSize: "10"
 
 plotProfile:
     kmeans : "1"                  # choose the number of kmeans to compute
     startLabel : "TSS"            # default is TSS but could be anything, like "peak start"
     endLabel : "TES"              # TES is default but can be changed like for startLabel
+
+bamPEFragmentSize:
+    binSize: "10"
+    title:
+    maxFragmentLength: "2000"
