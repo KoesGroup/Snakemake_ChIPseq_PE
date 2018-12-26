@@ -13,7 +13,7 @@ rule call_narrow_peaks:
         qvalue      = str(config['macs2']['qvalue']),
         outdir      = str(config['macs2']['outdir'])
     conda:
-        "../envs/macs2_env.yaml"
+        "../envs/macs2.yaml"
     shell:
         """
         macs2 callpeak -t {input} {params.format} {params.genomesize} --name {params.name} --nomodel --bdg -q {params.qvalue} --outdir {params.outdir} &>{log}
