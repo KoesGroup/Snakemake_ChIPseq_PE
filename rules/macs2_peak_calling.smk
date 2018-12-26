@@ -1,6 +1,6 @@
 rule call_narrow_peaks:
     input:
-        RESULT_DIR + "mapped/{sample}.shifted.rmdup.sorted.bam"
+        RESULT_DIR + "mapped/{sample}.sorted.rmdup.bam"
     output:
         RESULT_DIR + "bed/{sample}_peaks.narrowPeak"
     message:
