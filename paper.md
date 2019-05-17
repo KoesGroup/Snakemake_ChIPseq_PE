@@ -37,7 +37,7 @@ The outputs delivered by the pipeline are:
 3. Peaks informations files, these `bed` files gather the information about the peak calling produced by the MACS2 algorithm. This files can be potentially used for annotation and functional enrichment analysis.
 4. The deeptools suite used by the pipeline produces beautiful visualization of the read coverage over genomic features provided by the user.  
 
-This Snakemake ChIP-seq analysis pipeline provides an easy to use command-line pipeline requiring minimum modifications with high modularity for domain knowledge input from the user. The source code of this pipeline has been archived to Zenodo with the following linked DOI : [@zenodo]
+This Snakemake ChIP-seq analysis pipeline provides an easy to use command-line pipeline requiring minimum modifications with high modularity for domain knowledge input from the user. The source code of this pipeline has been archived to Zenodo with the following linked DOI doi.141444770 [@zenodo].
 
 
 # Figures
