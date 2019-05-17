@@ -73,7 +73,7 @@ rule multiBamSummary:
         binSize     = str(config['multiBamSummary']['binSize'])
     log:
         RESULT_DIR + "logs/deeptools/multibamsummary/MATRIX.log"
-    conda: 
+    conda:
         "../envs/deeptools.yaml"
     shell:
         "multiBamSummary bins \
@@ -111,8 +111,6 @@ rule plotCorrelation:
                     --plotFile {output} \
                     --plotNumbers \
                     2> {log}"
-
-#--plotTitle 'Pearson Correlation of {params.title} coverage' \
 
 
 rule computeMatrix:
