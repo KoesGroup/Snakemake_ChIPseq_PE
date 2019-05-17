@@ -1,0 +1,116 @@
+@misc{zenodo,
+  author = {Jihed Chouaref and Marc Galland and Tijs Bliek},
+  title  = {{KoesGroup/Snakemake_ChIPseq_PE: Clean first release}},
+  month  = dec,
+  year   = 2018,
+  doi    = {10.5281/zenodo.2025836},
+  url    = {https://doi.org/10.5281/zenodo.2025836}
+}
+
+
+@article{koster:2012,
+	title = {Snakemake--a scalable bioinformatics workflow engine},
+	volume = {28},
+	issn = {1367-4803, 1460-2059},
+	url = {https://academic.oup.com/bioinformatics/article-lookup/doi/10.1093/bioinformatics/bts480},
+	doi = {10.1093/bioinformatics/bts480},
+	language = {en},
+	number = {19},
+	urldate = {2018-12-18},
+	journal = {Bioinformatics},
+	author = {Koster, J. and Rahmann, S.},
+	month = oct,
+	year = {2012},
+	pages = {2520--2522}
+}
+
+@article{Chen:2018,
+	title = {fastp: an ultra-fast all-in-one {FASTQ} preprocessor},
+	volume = {34},
+	issn = {1367-4811},
+	shorttitle = {fastp},
+	doi = {10.1093/bioinformatics/bty560},
+	abstract = {Motivation: Quality control and preprocessing of FASTQ files are essential to providing clean data for downstream analysis. Traditionally, a different tool is used for each operation, such as quality control, adapter trimming and quality filtering. These tools are often insufficiently fast as most are developed using high-level programming languages (e.g. Python and Java) and provide limited multi-threading support. Reading and loading data multiple times also renders preprocessing slow and I/O inefficient.
+Results: We developed fastp as an ultra-fast FASTQ preprocessor with useful quality control and data-filtering features. It can perform quality control, adapter trimming, quality filtering, per-read quality pruning and many other operations with a single scan of the FASTQ data. This tool is developed in C++ and has multi-threading support. Based on our evaluation, fastp is 2-5 times faster than other FASTQ preprocessing tools such as Trimmomatic or Cutadapt despite performing far more operations than similar tools.
+Availability and implementation: The open-source code and corresponding instructions are available at https://github.com/OpenGene/fastp.},
+	language = {eng},
+	number = {17},
+	journal = {Bioinformatics (Oxford, England)},
+	author = {Chen, Shifu and Zhou, Yanqing and Chen, Yaru and Gu, Jia},
+	month = sep,
+	year = {2018},
+	pmid = {30423086},
+	pmcid = {PMC6129281},
+	pages = {i884--i890}
+}
+
+@article{Langmead:2012,
+	title = {Fast gapped-read alignment with {Bowtie} 2},
+	volume = {9},
+	issn = {1548-7105},
+	doi = {10.1038/nmeth.1923},
+	abstract = {As the rate of sequencing increases, greater throughput is demanded from read aligners. The full-text minute index is often used to make alignment very fast and memory-efficient, but the approach is ill-suited to finding longer, gapped alignments. Bowtie 2 combines the strengths of the full-text minute index with the flexibility and speed of hardware-accelerated dynamic programming algorithms to achieve a combination of high speed, sensitivity and accuracy.},
+	language = {eng},
+	number = {4},
+	journal = {Nature Methods},
+	author = {Langmead, Ben and Salzberg, Steven L.},
+	month = mar,
+	year = {2012},
+	pmid = {22388286},
+	pmcid = {PMC3322381},
+	keywords = {Algorithms, Computational Biology, Databases, Genetic, Genome, Human, Humans, Sequence Alignment, Sequence Analysis, DNA},
+	pages = {357--359}
+}
+
+@article{Li:2009,
+	title = {The {Sequence} {Alignment}/{Map} format and {SAMtools}},
+	volume = {25},
+	issn = {1367-4811},
+	doi = {10.1093/bioinformatics/btp352},
+	abstract = {SUMMARY: The Sequence Alignment/Map (SAM) format is a generic alignment format for storing read alignments against reference sequences, supporting short and long reads (up to 128 Mbp) produced by different sequencing platforms. It is flexible in style, compact in size, efficient in random access and is the format in which alignments from the 1000 Genomes Project are released. SAMtools implements various utilities for post-processing alignments in the SAM format, such as indexing, variant caller and alignment viewer, and thus provides universal tools for processing read alignments.
+AVAILABILITY: http://samtools.sourceforge.net.},
+	language = {eng},
+	number = {16},
+	journal = {Bioinformatics (Oxford, England)},
+	author = {Li, Heng and Handsaker, Bob and Wysoker, Alec and Fennell, Tim and Ruan, Jue and Homer, Nils and Marth, Gabor and Abecasis, Goncalo and Durbin, Richard and {1000 Genome Project Data Processing Subgroup}},
+	month = aug,
+	year = {2009},
+	pmid = {19505943},
+	pmcid = {PMC2723002},
+	keywords = {Algorithms, Base Sequence, Computational Biology, Genome, Genomics, Molecular Sequence Data, Sequence Alignment, Sequence Analysis, DNA, Software},
+	pages = {2078--2079}
+}
+
+@article{Gruning:2018,
+	title = {Bioconda: sustainable and comprehensive software distribution for the life sciences},
+	volume = {15},
+	issn = {1548-7105},
+	shorttitle = {Bioconda},
+	doi = {10.1038/s41592-018-0046-7},
+	language = {eng},
+	number = {7},
+	journal = {Nature Methods},
+	author = {Grüning, Björn and Dale, Ryan and Sjödin, Andreas and Chapman, Brad A. and Rowe, Jillian and Tomkins-Tinch, Christopher H. and Valieris, Renan and Köster, Johannes and {Bioconda Team}},
+	month = jul,
+	year = {2018},
+	pmid = {29967506},
+	pages = {475--476}
+}
+
+@article{Ramirez:2016,
+	title = {{deepTools}2: a next generation web server for deep-sequencing data analysis},
+	volume = {44},
+	issn = {1362-4962},
+	shorttitle = {{deepTools}2},
+	doi = {10.1093/nar/gkw257},
+	abstract = {We present an update to our Galaxy-based web server for processing and visualizing deeply sequenced data. Its core tool set, deepTools, allows users to perform complete bioinformatic workflows ranging from quality controls and normalizations of aligned reads to integrative analyses, including clustering and visualization approaches. Since we first described our deepTools Galaxy server in 2014, we have implemented new solutions for many requests from the community and our users. Here, we introduce significant enhancements and new tools to further improve data visualization and interpretation. deepTools continue to be open to all users and freely available as a web service at deeptools.ie-freiburg.mpg.de The new deepTools2 suite can be easily deployed within any Galaxy framework via the toolshed repository, and we also provide source code for command line usage under Linux and Mac OS X. A public and documented API for access to deepTools functionality is also available.},
+	language = {eng},
+	number = {W1},
+	journal = {Nucleic Acids Research},
+	author = {Ramírez, Fidel and Ryan, Devon P. and Grüning, Björn and Bhardwaj, Vivek and Kilpert, Fabian and Richter, Andreas S. and Heyne, Steffen and Dündar, Friederike and Manke, Thomas},
+	year = {2016},
+	pmid = {27079975},
+	pmcid = {PMC4987876},
+	keywords = {Animals, Base Sequence, Computational Biology, Computer Graphics, Drosophila melanogaster, High-Throughput Nucleotide Sequencing, Humans, Information Storage and Retrieval, Internet, Sequence Alignment, Sequence Analysis, DNA, Software},
+	pages = {W160--165}
+}
