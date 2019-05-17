@@ -8,7 +8,7 @@
 }
 
 
-@article{koster:2012,
+@article{Koster:2012,
 	title = {Snakemake--a scalable bioinformatics workflow engine},
 	volume = {28},
 	issn = {1367-4803, 1460-2059},
@@ -30,8 +30,7 @@
 	issn = {1367-4811},
 	shorttitle = {fastp},
 	doi = {10.1093/bioinformatics/bty560},
-	abstract = {Motivation: Quality control and preprocessing of FASTQ files are essential to providing clean data for downstream analysis. Traditionally, a different tool is used for each operation, such as quality control, adapter trimming and quality filtering. These tools are often insufficiently fast as most are developed using high-level programming languages (e.g. Python and Java) and provide limited multi-threading support. Reading and loading data multiple times also renders preprocessing slow and I/O inefficient.
-Results: We developed fastp as an ultra-fast FASTQ preprocessor with useful quality control and data-filtering features. It can perform quality control, adapter trimming, quality filtering, per-read quality pruning and many other operations with a single scan of the FASTQ data. This tool is developed in C++ and has multi-threading support. Based on our evaluation, fastp is 2-5 times faster than other FASTQ preprocessing tools such as Trimmomatic or Cutadapt despite performing far more operations than similar tools.
+	abstract = {Motivation: Quality control and preprocessing of FASTQ files are essential to providing clean data for downstream analysis. Traditionally, a different tool is used for each operation, such as quality control, adapter trimming and quality filtering. These tools are often insufficiently fast as most are developed using high-level programming languages (e.g. Python and Java) and provide limited multi-threading support. Reading and loading data multiple times also renders preprocessing slow and I/O inefficient. Results: We developed fastp as an ultra-fast FASTQ preprocessor with useful quality control and data-filtering features. It can perform quality control, adapter trimming, quality filtering, per-read quality pruning and many other operations with a single scan of the FASTQ data. This tool is developed in C++ and has multi-threading support. Based on our evaluation, fastp is 2-5 times faster than other FASTQ preprocessing tools such as Trimmomatic or Cutadapt despite performing far more operations than similar tools.
 Availability and implementation: The open-source code and corresponding instructions are available at https://github.com/OpenGene/fastp.},
 	language = {eng},
 	number = {17},
@@ -113,4 +112,51 @@ AVAILABILITY: http://samtools.sourceforge.net.},
 	pmcid = {PMC4987876},
 	keywords = {Animals, Base Sequence, Computational Biology, Computer Graphics, Drosophila melanogaster, High-Throughput Nucleotide Sequencing, Humans, Information Storage and Retrieval, Internet, Sequence Alignment, Sequence Analysis, DNA, Software},
 	pages = {W160--165}
+}
+
+@article{Anaconda:2016,
+ title = Anaconda Software Distribution,
+ journal={Computer software. Vers. 2-2.4.0}.
+ author={Anaconda},
+ year={2016}
+}
+
+@Article{Bolger:2014,
+author={Bolger, A. M.
+and Lohse, M.
+and Usadel, B.},
+title={Trimmomatic: a flexible trimmer for Illumina sequence data},
+year={2014},
+volume={30},
+number={15},
+pages={2114-20},
+keywords={Computational Biology Databases, Genetic High-Throughput Nucleotide Sequencing/*methods *Software},
+abstract={MOTIVATION: Although many next-generation sequencing (NGS) read preprocessing tools already existed, we could not find any tool or combination of tools that met our requirements in terms of flexibility, correct handling of paired-end data and high performance. We have developed Trimmomatic as a more flexible and efficient preprocessing tool, which could correctly handle paired-end data. RESULTS: The value of NGS read preprocessing is demonstrated for both reference-based and reference-free tasks. Trimmomatic is shown to produce output that is at least competitive with, and in many cases superior to, that produced by other tools, in all scenarios tested. AVAILABILITY AND IMPLEMENTATION: Trimmomatic is licensed under GPL V3. It is cross-platform (Java 1.5+ required) and available at http://www.usadellab.org/cms/index.php?page=trimmomatic CONTACT: usadel@bio1.rwth-aachen.de SUPPLEMENTARY INFORMATION: Supplementary data are available at Bioinformatics online.},
+note={Bolger, Anthony M Lohse, Marc Usadel, Bjoern eng Research Support, Non-U.S. Gov't England 2014/04/04 06:00 Bioinformatics. 2014 Aug 1;30(15):2114-20. doi: 10.1093/bioinformatics/btu170. Epub 2014 Apr 1.},
+doi={10.1093/bioinformatics/btu170},
+url={http://www.ncbi.nlm.nih.gov/pubmed/24695404}
+}
+
+@Article{Zhang:2008,
+author={Zhang, Y.
+and Liu, T.
+and Meyer, C. A.
+and Eeckhoute, J.
+and Johnson, D. S.
+and Bernstein, B. E.
+and Nusbaum, C.
+and Myers, R. M.
+and Brown, M.
+and Li, W.
+and Liu, X. S.},
+title={Model-based analysis of ChIP-Seq (MACS)},
+year={2008},
+volume={9},
+number={9},
+pages={R137},
+keywords={*Algorithms Cell Line, Tumor Chromatin Immunoprecipitation/*methods Hepatocyte Nuclear Factor 3-alpha/analysis/*genetics Humans Models, Genetic Oligonucleotide Array Sequence Analysis/*methods},
+abstract={We present Model-based Analysis of ChIP-Seq data, MACS, which analyzes data generated by short read sequencers such as Solexa's Genome Analyzer. MACS empirically models the shift size of ChIP-Seq tags, and uses it to improve the spatial resolution of predicted binding sites. MACS also uses a dynamic Poisson distribution to effectively capture local biases in the genome, allowing for more robust predictions. MACS compares favorably to existing ChIP-Seq peak-finding algorithms, and is freely available.},
+note={Zhang, Yong Liu, Tao Meyer, Clifford A Eeckhoute, Jerome Johnson, David S Bernstein, Bradley E Nusbaum, Chad Myers, Richard M Brown, Myles Li, Wei Liu, X Shirley eng DK074967/DK/NIDDK NIH HHS/ HG004270/HG/NHGRI NIH HHS/ HG004069/HG/NHGRI NIH HHS/ R01 HG004069-02/HG/NHGRI NIH HHS/ R01 HG004069-03/HG/NHGRI NIH HHS/ R01 HG004069/HG/NHGRI NIH HHS/ Comparative Study Research Support, N.I.H., Extramural England 2008/09/19 09:00 Genome Biol. 2008;9(9):R137. doi: 10.1186/gb-2008-9-9-r137. Epub 2008 Sep 17.},
+doi={10.1186/gb-2008-9-9-r137},
+url={http://www.ncbi.nlm.nih.gov/pubmed/18798982}
 }
