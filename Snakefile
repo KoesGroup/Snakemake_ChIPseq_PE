@@ -113,17 +113,3 @@ include : "rules/external_data.smk"
 include : 'rules/pre_processing.smk'
 include : "rules/macs2_peak_calling.smk"
 include : "rules/deeptools_post_processing.smk"
-
-
-rule multiqc:
-    input:
-        expand(RESULT_DIR + "fastqc/{sample}_{pair}_fastqc.zip", sample=SAMPLES, pair={"forward", "reverse"}),
-        expand(RESULT_DIR + "bed/{sample}_peaks.xls", sample= SAMPLES)
-    output:
-        "qc/multiqc.html"
-    params:
-        ""  # Optional: extra parameters for multiqc.
-    log:
-        "logs/multiqc.log"
-    wrapper:
-        "0.27.1/bio/multiqc"
