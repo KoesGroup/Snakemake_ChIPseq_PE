@@ -40,7 +40,7 @@ Informations about the output of the pipeline can be found in the part **Main ou
 ## Conda environment
 
 First, you need to create an environment for the use of Snakemake with [Conda package manager](https://conda.io/docs/using/envs.html).
-1. Create a virtual environment named "chipseq" from the `global_env.yaml` file with the following command: `conda env create --name chipseq --file ~/envs/global_env.yaml`
+1. Create a virtual environment named "chipseq" from the `global_env.yaml` file with the following command: `conda env create --name chipseq --file envs/global_env.yaml`
 2. Then, activate this virtual environment with `source activate chipseq`
 
 The Snakefile will then take care of installing and loading the packages and softwares required by each step of the pipeline.
