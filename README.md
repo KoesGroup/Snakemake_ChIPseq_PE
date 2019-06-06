@@ -3,6 +3,7 @@
 [![Snakemake](https://img.shields.io/badge/snakemake-≥5.2.0-brightgreen.svg)](https://snakemake.bitbucket.io)
 [![Miniconda](https://img.shields.io/badge/miniconda-blue.svg)](https://conda.io/miniconda)
 
+[![DOI](http://joss.theoj.org/papers/10.21105/joss.01465/status.svg)](https://doi.org/10.21105/joss.01465)  
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3240026.svg)](https://doi.org/10.5281/zenodo.3240026)
 
 # Aim
